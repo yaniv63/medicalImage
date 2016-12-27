@@ -6,7 +6,7 @@ Created on Wed Dec 21 17:47:23 2016
 """
 
 from keras.layers import Input, Dense,Flatten,Convolution2D,MaxPooling2D,Dropout,LeakyReLU
-from keras.models import Model
+from keras.models import Model,Sequential
 import numpy as np
 
 def atom_model_flat(sequence_num=1):
@@ -19,8 +19,8 @@ def atom_model_flat(sequence_num=1):
     return model
 
 def atom_model_conv(sequence_num=1):
-    atom_input = Input(shape=(1,32,32),name='input_num%d'%(sequence_num))
-    conv1 = Convolution2D(24, 5, 5)(atom_input) # 1x32x32 -> 24x28x28
+    #atom_input = Input(shape=(1,32,32),name='input_num%d'%(sequence_num))
+    conv1 = Convolution2D(24, 5, 5)#(atom_input) # 1x32x32 -> 24x28x28
     leakyrelu1 = LeakyReLU()(conv1)    
     maxpool1= MaxPooling2D(pool_size=(2, 2))(leakyrelu1)                     # 24x28x28 -> 24x14x14
     dropout1 = Dropout(0.25)(maxpool1)    # 24x14x14 -> 32x6x6    
@@ -30,7 +30,8 @@ def atom_model_conv(sequence_num=1):
     maxpool2= MaxPooling2D(pool_size=(2, 2))(leakyrelu2)                     # 24x28x28 -> 24x14x14
     dropout2 = Dropout(0.25)(maxpool2)    
 
-    conv3 = Convolution2D(48, 3, 3)(dropout2)# 32x6x6 -> 48x4x4
+    # 32x6x6 -> 48x4x4
+    conv3 = Convolution2D(48, 3, 3)(dropout2)
     leakyrelu3 = LeakyReLU()(conv3)            
     dropout3 = Dropout(0.25)(leakyrelu3)    
     
@@ -40,8 +41,36 @@ def atom_model_conv(sequence_num=1):
     dropout_f = Dropout(0.25)(leakyrelu4)
     decision = Dense(1,activation='sigmoid')(dropout_f)   
     
-    model = Model(input=atom_input,output=decision)
+    model = Model(output=decision)
+    #model = Model(input=atom_input,output=decision)
     return model
+    
+def create_smodel(N_mod, img_rows, img_cols):
+    smodel = Sequential()
+
+    # 1x32x32 -> 24x14x14
+    smodel.add(Convolution2D(24, 5, 5,
+                             input_shape=(N_mod, img_rows, img_cols))) # 1x32x32 -> 24x28x28
+    smodel.add(LeakyReLU())
+    smodel.add(MaxPooling2D(pool_size=(2, 2)))                     # 24x28x28 -> 24x14x14
+    smodel.add(Dropout(0.25))
+
+    # 24x14x14 -> 32x6x6
+    smodel.add(Convolution2D(32, 3, 3)) # 24x14x14 -> 32x12x12
+    smodel.add(LeakyReLU())
+    smodel.add(MaxPooling2D(pool_size=(2, 2)))                     # 32x12x12 -> 32x6x6
+    smodel.add(Dropout(0.25))
+
+    # 32x6x6 -> 48x4x4
+    smodel.add(Convolution2D(48, 3, 3))
+    smodel.add(LeakyReLU())
+    smodel.add(Dropout(0.25))
+    
+    smodel.add(Flatten())
+    smodel.add(Dense(16))
+    smodel.add(LeakyReLU())
+    smodel.add(Dropout(0.25))    
+    return smodel
 
 
 if __name__ == "__main__":          
