@@ -45,31 +45,31 @@ def atom_model_conv(sequence_num=1):
     #model = Model(input=atom_input,output=decision)
     return model
     
-def create_smodel(N_mod, img_rows, img_cols):
-    smodel = Sequential()
-
+def create_smodel(N_mod, img_rows, img_cols,index=0):
+    index = str(index)    
+    smodel = Sequential(name='Seq_'+index)
     # 1x32x32 -> 24x14x14
     smodel.add(Convolution2D(24, 5, 5,
-                             input_shape=(N_mod, img_rows, img_cols))) # 1x32x32 -> 24x28x28
-    smodel.add(LeakyReLU())
-    smodel.add(MaxPooling2D(pool_size=(2, 2)))                     # 24x28x28 -> 24x14x14
-    smodel.add(Dropout(0.25))
+                             input_shape=(N_mod, img_rows, img_cols),name='conv1_'+index)) # 1x32x32 -> 24x28x28
+    smodel.add(LeakyReLU(name='leakyrelu1_'+index))
+    smodel.add(MaxPooling2D(pool_size=(2, 2),name='maxpool1_'+index))                     # 24x28x28 -> 24x14x14
+    smodel.add(Dropout(0.25,name='drop1_'+index))
 
     # 24x14x14 -> 32x6x6
-    smodel.add(Convolution2D(32, 3, 3)) # 24x14x14 -> 32x12x12
-    smodel.add(LeakyReLU())
-    smodel.add(MaxPooling2D(pool_size=(2, 2)))                     # 32x12x12 -> 32x6x6
-    smodel.add(Dropout(0.25))
+    smodel.add(Convolution2D(32, 3, 3,name='conv2_'+index)) # 24x14x14 -> 32x12x12
+    smodel.add(LeakyReLU(name='leakyrelu2_'+index))
+    smodel.add(MaxPooling2D(pool_size=(2, 2),name='maxpool2_'+index))                     # 32x12x12 -> 32x6x6
+    smodel.add(Dropout(0.25,name='drop2_'+index))
 
     # 32x6x6 -> 48x4x4
-    smodel.add(Convolution2D(48, 3, 3))
-    smodel.add(LeakyReLU())
-    smodel.add(Dropout(0.25))
+    smodel.add(Convolution2D(48, 3, 3,name='conv3_'+index))
+    smodel.add(LeakyReLU(name='leakyrelu3_'+index))
+    smodel.add(Dropout(0.25,name='drop3_'+index))
     
-    smodel.add(Flatten())
-    smodel.add(Dense(16))
-    smodel.add(LeakyReLU())
-    smodel.add(Dropout(0.25))    
+    smodel.add(Flatten(name='flat1_'+index))
+    smodel.add(Dense(16,name='dense1_'+index))
+    smodel.add(LeakyReLU(name='leakyrelu4_'+index))
+    smodel.add(Dropout(0.25,name='drop4_'+index))    
     return smodel
 
 

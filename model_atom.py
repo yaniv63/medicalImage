@@ -114,7 +114,6 @@ print('samples x channels x width x height x views = ')
 print(pos_curr.shape)
 
 
-model.fit([flair_samples,T2_samples][flair_labels,T2_labels],nb_epoch=5,batch_size=5)
 
 
 
