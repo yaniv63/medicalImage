@@ -7,9 +7,12 @@ Created on Mon Dec 26 16:42:11 2016
 from model_atom_base import create_smodel
 from keras.layers import Merge,Dense,Input,merge
 from keras.models import Model,Sequential
+from keras.callbacks import EarlyStopping,LambdaCallback
 import numpy as np
 import pickle
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
 
 
 
@@ -87,15 +90,25 @@ if __name__ == "__main__":
         predictors[i].fit(train_samples[i], train_labels[i],batch_size=300,shuffle=True)
         results.append(predictors[i].evaluate(test_samples[i],test_labels[i]))
         predictors[i].save_weights(weight_path+'%d.h5'%(i))
-    combain_predict = True
-    if combain_predict ==True:
-        combained_model = two_predictors_combained_model()
-    else:
-        combained_model = two_parameters_combained_model()
-    layer_dict = dict([(layer.name, layer) for layer in combained_model.layers])
+    avg = (results[0][1]+results[1][1])/2
+
+    # Plot the loss after every epoch.
+    plot_loss_callback = LambdaCallback(on_epoch_end=lambda epoch, logs: plt.plot(np.arange(epoch), logs['loss']))
+    stop_by_loss_callback = EarlyStopping(monitor='loss', min_delta=0.0001, patience=5, verbose=0, mode='auto')
+
+    result_combained = []
+    combained_model_predictors = two_predictors_combained_model()
+    layer_dict = dict([(layer.name, layer) for layer in combained_model_predictors.layers])
     layer_dict["Seq_0"].load_weights(weight_path+'0.h5',by_name=True)
     layer_dict["Seq_1"].load_weights(weight_path+'1.h5',by_name=True)
-    combained_model.compile(optimizer='rmsprop',loss='binary_crossentropy',metrics=['accuracy'])
-    combained_model.fit(train_samples,train_labels[0],nb_epoch=5,batch_size=300)
-    result = combained_model.evaluate(test_samples,test_labels[0]) 
-        
+    combained_model_predictors.compile(optimizer='rmsprop',loss='binary_crossentropy',metrics=['accuracy'])
+    combained_model_predictors.fit(train_samples,train_labels[0],nb_epoch=100,batch_size=300,callbacks=[ stop_by_loss_callback])
+    result_combained.append(combained_model_predictors.evaluate(test_samples,test_labels[0]))
+    
+    combained_model_parameters = two_parameters_combained_model()
+    layer_dict = dict([(layer.name, layer) for layer in combained_model_parameters.layers])
+    layer_dict["Seq_0"].load_weights(weight_path+'0.h5',by_name=True)
+    layer_dict["Seq_1"].load_weights(weight_path+'1.h5',by_name=True)
+    combained_model_parameters.compile(optimizer='rmsprop',loss='binary_crossentropy',metrics=['accuracy'])
+    combained_model_parameters.fit(train_samples,train_labels[0],nb_epoch=100,batch_size=300,callbacks=[ stop_by_loss_callback])
+    result_combained.append(combained_model_parameters.evaluate(test_samples,test_labels[0]))
