@@ -16,7 +16,11 @@ import scipy.misc
 FLAIR_th = 0.91
 WM_prior_th = 0.5
 
+<<<<<<< HEAD
 Src_Path = r"/media/sf_shared/src/medicalImaging/data/"
+=======
+Src_Path = r"/media/sf_ubuntuFolder/src/medicalImaging/data/"
+>>>>>>> f3b66be050305a2ef3d7a51947324587d2d26811
 
 
 
