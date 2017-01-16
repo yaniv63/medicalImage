@@ -9,41 +9,41 @@ from keras.layers import Input, Dense,Flatten,Convolution2D,MaxPooling2D,Dropout
 from keras.models import Model,Sequential
 import numpy as np
 
-def atom_model_flat(sequence_num=1):
-    
-    atom_input = Input(shape=(32,32,),name='input_num%d'%(sequence_num))
-    flat = Flatten()(atom_input)
-    dense_output =Dense(10,activation='relu')(flat)
-    prediction =Dense(1,activation='sigmoid')(dense_output)
-    model = Model(input=atom_input,output=prediction)
-    return model
-
-def atom_model_conv(sequence_num=1):
-    #atom_input = Input(shape=(1,32,32),name='input_num%d'%(sequence_num))
-    conv1 = Convolution2D(24, 5, 5)#(atom_input) # 1x32x32 -> 24x28x28
-    leakyrelu1 = LeakyReLU()(conv1)    
-    maxpool1= MaxPooling2D(pool_size=(2, 2))(leakyrelu1)                     # 24x28x28 -> 24x14x14
-    dropout1 = Dropout(0.25)(maxpool1)    # 24x14x14 -> 32x6x6    
-
-    conv2 = Convolution2D(32, 3, 3)(dropout1) # 24x14x14 -> 32x12x12
-    leakyrelu2 = LeakyReLU()(conv2)        
-    maxpool2= MaxPooling2D(pool_size=(2, 2))(leakyrelu2)                     # 24x28x28 -> 24x14x14
-    dropout2 = Dropout(0.25)(maxpool2)    
-
-    # 32x6x6 -> 48x4x4
-    conv3 = Convolution2D(48, 3, 3)(dropout2)
-    leakyrelu3 = LeakyReLU()(conv3)            
-    dropout3 = Dropout(0.25)(leakyrelu3)    
-    
-    flat = Flatten()(dropout3)
-    dense = Dense(16)(flat)
-    leakyrelu4 = LeakyReLU()(dense)        
-    dropout_f = Dropout(0.25)(leakyrelu4)
-    decision = Dense(1,activation='sigmoid')(dropout_f)   
-    
-    model = Model(output=decision)
-    #model = Model(input=atom_input,output=decision)
-    return model
+#def atom_model_flat(sequence_num=1):
+#    
+#    atom_input = Input(shape=(32,32,),name='input_num%d'%(sequence_num))
+#    flat = Flatten()(atom_input)
+#    dense_output =Dense(10,activation='relu')(flat)
+#    prediction =Dense(1,activation='sigmoid')(dense_output)
+#    model = Model(input=atom_input,output=prediction)
+#    return model
+#
+#def atom_model_conv(sequence_num=1):
+#    #atom_input = Input(shape=(1,32,32),name='input_num%d'%(sequence_num))
+#    conv1 = Convolution2D(24, 5, 5)#(atom_input) # 1x32x32 -> 24x28x28
+#    leakyrelu1 = LeakyReLU()(conv1)    
+#    maxpool1= MaxPooling2D(pool_size=(2, 2))(leakyrelu1)                     # 24x28x28 -> 24x14x14
+#    dropout1 = Dropout(0.25)(maxpool1)    # 24x14x14 -> 32x6x6    
+#
+#    conv2 = Convolution2D(32, 3, 3)(dropout1) # 24x14x14 -> 32x12x12
+#    leakyrelu2 = LeakyReLU()(conv2)        
+#    maxpool2= MaxPooling2D(pool_size=(2, 2))(leakyrelu2)                     # 24x28x28 -> 24x14x14
+#    dropout2 = Dropout(0.25)(maxpool2)    
+#
+#    # 32x6x6 -> 48x4x4
+#    conv3 = Convolution2D(48, 3, 3)(dropout2)
+#    leakyrelu3 = LeakyReLU()(conv3)            
+#    dropout3 = Dropout(0.25)(leakyrelu3)    
+#    
+#    flat = Flatten()(dropout3)
+#    dense = Dense(16)(flat)
+#    leakyrelu4 = LeakyReLU()(dense)        
+#    dropout_f = Dropout(0.25)(leakyrelu4)
+#    decision = Dense(1,activation='sigmoid')(dropout_f)   
+#    
+#    model = Model(output=decision)
+#    #model = Model(input=atom_input,output=decision)
+#    return model
     
 def create_smodel(N_mod, img_rows, img_cols,index=0):
     index = str(index)    
@@ -75,7 +75,7 @@ def create_smodel(N_mod, img_rows, img_cols,index=0):
 
 if __name__ == "__main__":          
     # load sample patches
-    sample_patches_filename = r"/home/yaniv/src/medicalImaging/ref/sample_patches.npz"
+    sample_patches_filename = r"/media/sf_ubuntuFolder/src/medicalImaging/ref/sample_patches.npz"
     Npz = np.load(sample_patches_filename)
     pos_curr = Npz['IPosCurr']
     neg_curr = Npz['INegCurr']
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     plot(mymodel, to_file='model_atom-yaniv.png',show_layer_names=True,show_shapes=True)
     
     mymodel.fit(flair_samples, flair_labels,batch_size=10,shuffle=True)
-    mymodel.save_weights(r'/home/yaniv/src/medicalImaging/weights.h5')
+    mymodel.save_weights(r'/media/sf_ubuntuFolder/src/medicalImaging/weights.h5')
     result = mymodel.evaluate(flair_samples,flair_labels) 
     a = mymodel.get_weights()
     
