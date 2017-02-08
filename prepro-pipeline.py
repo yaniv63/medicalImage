@@ -17,9 +17,11 @@ FLAIR_th = 0.91
 WM_prior_th = 0.5
 
 
-Src_Path = r"/media/sf_shared/src/medicalImaging/data/"
-
-
+Src_Path = r"./train/"
+Data_Path = r"data/"
+WM_Path = r"WM/"
+Labels_Path = r"seg/"
+Output_Path=r"patches/"
 
 
 # In[10]:
@@ -116,16 +118,15 @@ zc = 100
 # In[6]:
 
 # load volume
-for i in range(5):
-    for j in range(1,5):
-        index = i+1
-        Person = "person0%d"%(index)
-        FLAIR_filename = Src_Path+Person+"/"+Person+"_Time0%d_FLAIR.npy"%(j)
-        WM_filename = Src_Path+Person+"/"+Person+"_Time0%d.npy"%(j)    
-        FLAIR_labels_1 = Src_Path+Person+"/"+"training0%d_0%d_mask1.nii"%(index,j)
+for index in range(2,6):
+    for index2 in range(1,5):
+        #Person = "person0%d"%(index)
+        FLAIR_filename = Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(index,index2)
+        WM_filename = Src_Path+WM_Path+"Person0{}_Time0{}.npy".format(index,index2)    
+        FLAIR_labels_1 = Src_Path+Labels_Path+"training0{}_0{}_mask1.nii".format(index,index2)
         vol = np.load(FLAIR_filename)
         labels = nb.load(FLAIR_labels_1).get_data()
-        
+       
         # In[7]:
         
         # initialize interpolator
@@ -168,22 +169,22 @@ for i in range(5):
         
         import pickle
         
-        with open('patches_axial_0%d_0%d.lst'%(index,j), 'wb') as fp1 ,open('patches_coronal_0%d_0%d.lst'%(index,j), 'wb') as fp2,open('labels_0%d_0%d.lst'%(index,j), 'wb') as fp3 :
+        with open(Output_Path+"patches_axial_0{}_0{}.lst".format(index,index2), 'wb') as fp1 ,open(Output_Path+"patches_coronal_0{}_0{}.lst".format(index,index2), 'wb') as fp2,open(Output_Path+"labels_0{}_0{}.lst".format(index,index2), 'wb') as fp3 :
             pickle.dump(patches_axial, fp1)
             pickle.dump(patches_coronal, fp2)
             pickle.dump(patches_labels, fp3)
 
 
-#%%
-## extract patches
-p_axial = extract_axial(interp3, 80, 101, 104, sz, w)
-p_coronal = extract_coronal(interp3, 80, 101, 104, sz, w)
+##%%
+### extract patches
+#p_axial = extract_axial(interp3, 80, 101, 104, sz, w)
+#p_coronal = extract_coronal(interp3, 80, 101, 104, sz, w)
+##
+##
+## axial
+#pylab.figure()
+#pylab.imshow(p_axial, cmap=matplotlib.cm.gray, interpolation='nearest')
 #
-#
-# axial
-pylab.figure()
-pylab.imshow(p_axial, cmap=matplotlib.cm.gray, interpolation='nearest')
-
-# coronal
-pylab.figure()
-pylab.imshow(p_coronal, cmap=matplotlib.cm.gray, interpolation='nearest')
+## coronal
+#pylab.figure()
+#pylab.imshow(p_coronal, cmap=matplotlib.cm.gray, interpolation='nearest')
