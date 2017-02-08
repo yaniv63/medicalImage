@@ -124,10 +124,11 @@ if __name__ == "__main__":
     avg_precentage = avg_success.tolist().count([True])/float(len(avg_predict))
     
     confusion_mat=[]
+    dice = []
     for i in range(3):
         from sklearn.metrics import confusion_matrix
         predict = combained_model[i].predict(test_samples).round()
         confusion_mat.append(confusion_matrix(test_labels[0],predict))
-    
+        print("dice {} is "+str(float(2)*confusion_mat[i][1][1]/(2*confusion_mat[i][1][1]+confusion_mat[i][1][0]+confusion_mat[i][0][1])).format(i))
     
         

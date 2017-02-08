@@ -16,11 +16,9 @@ import scipy.misc
 FLAIR_th = 0.91
 WM_prior_th = 0.5
 
-<<<<<<< HEAD
+
 Src_Path = r"/media/sf_shared/src/medicalImaging/data/"
-=======
-Src_Path = r"/media/sf_ubuntuFolder/src/medicalImaging/data/"
->>>>>>> f3b66be050305a2ef3d7a51947324587d2d26811
+
 
 
 
@@ -118,61 +116,62 @@ zc = 100
 # In[6]:
 
 # load volume
-for i in range(2):
-    index = i+1
-    Person = "person0%d"%(index)
-    FLAIR_filename = Src_Path+Person+"/"+Person+"_Time01_FLAIR.npy"
-    WM_filename = Src_Path+Person+"/"+Person+"_Time01.npy"    
-    FLAIR_labels_1 = Src_Path+Person+"/"+"training0%d_01_mask1.nii"%(index)
-    vol = np.load(FLAIR_filename)
-    labels = nb.load(FLAIR_labels_1).get_data()
-    
-    # In[7]:
-    
-    # initialize interpolator
-    x = np.linspace(0, vol.shape[2]-1,vol.shape[2])
-    y = np.linspace(0, vol.shape[1]-1,vol.shape[1])
-    z = np.linspace(0, vol.shape[0]-1,vol.shape[0])
-    interp3 = RegularGridInterpolator((z,y,x), vol)
-#%%
-    candidate_mask = apply_masks(FLAIR_filename,WM_filename)    
-
-    # In[12]:
-    patches= {}
-    patches_axial = []
-    patches_coronal = []
-    patches_labels = []
-    voxel_list = itertools.product(x,y,z)
-    zero_count = 0
-    for i,j,k in voxel_list:
-        if candidate_mask[i][j][k] == True:
-            axial_p = extract_axial(interp3, i, j, k, sz, w)
-            coronal_p = extract_coronal(interp3, i, j, k, sz, w)
-            if type(axial_p) == np.ndarray and type(coronal_p) == np.ndarray:        
-                if labels[i][j][k] == 0 and zero_count < 1500:            
-                    zero_count= zero_count+1                
-                    patches_axial.append(axial_p)
-                    patches_coronal.append(coronal_p)
-                    patches_labels.append(labels[i][j][k])
-                elif  labels[i][j][k] == 1:
-                    patches_axial.append(axial_p)
-                    patches_coronal.append(coronal_p)
-                    patches_labels.append(labels[i][j][k])
-        if len(patches_axial) > 3000:
-            break
-    
-    axial_p = extract_axial(interp3, 73, 101, 104, sz, w)
-    coronal_p = extract_coronal(interp3, 73, 101, 104, sz, w)
-    patches_axial.append(axial_p)
-    patches_coronal.append(coronal_p)
-    patches_labels.append(labels[i][j][k])
-    
-    import pickle
-    
-    with open('patches_axial_0%d.lst'%(index), 'wb') as fp1 ,open('patches_coronal_0%d.lst'%(index), 'wb') as fp2,open('labels_0%d.lst'%(index), 'wb') as fp3 :
-        pickle.dump(patches_axial, fp1)
-        pickle.dump(patches_coronal, fp2)
-        pickle.dump(patches_labels, fp3)
+for i in range(5):
+    for j in range(1,5):
+        index = i+1
+        Person = "person0%d"%(index)
+        FLAIR_filename = Src_Path+Person+"/"+Person+"_Time0%d_FLAIR.npy"%(j)
+        WM_filename = Src_Path+Person+"/"+Person+"_Time0%d.npy"%(j)    
+        FLAIR_labels_1 = Src_Path+Person+"/"+"training0%d_0%d_mask1.nii"%(index,j)
+        vol = np.load(FLAIR_filename)
+        labels = nb.load(FLAIR_labels_1).get_data()
+        
+        # In[7]:
+        
+        # initialize interpolator
+        x = np.linspace(0, vol.shape[2]-1,vol.shape[2])
+        y = np.linspace(0, vol.shape[1]-1,vol.shape[1])
+        z = np.linspace(0, vol.shape[0]-1,vol.shape[0])
+        interp3 = RegularGridInterpolator((z,y,x), vol)
+        #%%
+        candidate_mask = apply_masks(FLAIR_filename,WM_filename)    
+        
+        # In[12]:
+        patches= {}
+        patches_axial = []
+        patches_coronal = []
+        patches_labels = []
+        voxel_list = itertools.product(x,y,z)
+        zero_count = 0
+        for i,j,k in voxel_list:
+            if candidate_mask[i][j][k] == True:
+                axial_p = extract_axial(interp3, i, j, k, sz, w)
+                coronal_p = extract_coronal(interp3, i, j, k, sz, w)
+                if type(axial_p) == np.ndarray and type(coronal_p) == np.ndarray: #not NULL        
+                    if labels[i][j][k] == 0 :#and zero_count < 1500:            
+                        zero_count= zero_count+1                
+                        patches_axial.append(axial_p)
+                        patches_coronal.append(coronal_p)
+                        patches_labels.append(labels[i][j][k])
+                    elif  labels[i][j][k] == 1:
+                        patches_axial.append(axial_p)
+                        patches_coronal.append(coronal_p)
+                        patches_labels.append(labels[i][j][k])
+            #if len(patches_axial) > 3000:
+             #   break
+        
+        axial_p = extract_axial(interp3, 73, 101, 104, sz, w)
+        coronal_p = extract_coronal(interp3, 73, 101, 104, sz, w)
+        patches_axial.append(axial_p)
+        patches_coronal.append(coronal_p)
+        patches_labels.append(labels[i][j][k])
+        
+        import pickle
+        
+        with open('patches_axial_0%d_0%d.lst'%(index,j), 'wb') as fp1 ,open('patches_coronal_0%d_0%d.lst'%(index,j), 'wb') as fp2,open('labels_0%d_0%d.lst'%(index,j), 'wb') as fp3 :
+            pickle.dump(patches_axial, fp1)
+            pickle.dump(patches_coronal, fp2)
+            pickle.dump(patches_labels, fp3)
 
 
 #%%
