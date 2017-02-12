@@ -157,11 +157,10 @@ for index in range(2,6):
                         patches_coronal.append(coronal_p)
                         patches_labels.append(labels[i][j][k])
 
-
         permute = np.random.permutation(len(patches_axial))
-        patches_axial = patches_axial[permute]
-        patches_coronal = patches_coronal[permute]
-        patches_labels = patches_labels[permute]
+        patches_axial = np.array(patches_axial)[permute]
+        patches_coronal = np.array(patches_coronal)[permute]
+        patches_labels = np.array(patches_labels)[permute]
 
         axial_train,axial_train_labels,axial_val,axial_val_labels = split_train_validation(patches_axial,patches_labels,valSize)
         coronal_train,coronal_train_labels,coronal_val,coronal_val_labels = split_train_validation(patches_coronal,patches_labels,valSize)
