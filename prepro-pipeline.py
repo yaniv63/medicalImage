@@ -15,7 +15,7 @@ import scipy.misc
 
 FLAIR_th = 0.91
 WM_prior_th = 0.5
-
+valSize = 0.2
 
 Src_Path = r"./train/"
 Data_Path = r"data/"
@@ -23,8 +23,14 @@ WM_Path = r"WM/"
 Labels_Path = r"seg/"
 Output_Path=r"patches/"
 
+# patch size
+sz = 32
+w = sz/2
 
-# In[10]:
+# patch center
+xc = 74
+yc = 145
+zc = 100
 
 def binary_disk(r):
     arr = np.ones((2*r+1,2*r+1,2*r+1))
@@ -104,15 +110,13 @@ def extract_coronal(interp3, xc, yc, zc, sz, w):
     except ValueError as e:
         return 0
 
+def split_train_validation(data, labels, _valSize):
+    total_samples = len(data)
+    val_slice = int((1 - _valSize) * total_samples)
+    val_data, val_labels = data[val_slice:], labels[val_slice:]
+    train_data, train_labels = data[:val_slice], labels[:val_slice]
+    return train_data, train_labels, val_data, val_labels
 
-# patch size
-sz = 32
-w = sz/2
-
-# patch center
-xc = 74
-yc = 145
-zc = 100
 
 
 # In[6]:
@@ -149,42 +153,33 @@ for index in range(2,6):
                 axial_p = extract_axial(interp3, i, j, k, sz, w)
                 coronal_p = extract_coronal(interp3, i, j, k, sz, w)
                 if type(axial_p) == np.ndarray and type(coronal_p) == np.ndarray: #not NULL        
-                    if labels[i][j][k] == 0 :#and zero_count < 1500:            
-                        zero_count= zero_count+1                
                         patches_axial.append(axial_p)
                         patches_coronal.append(coronal_p)
                         patches_labels.append(labels[i][j][k])
-                    elif  labels[i][j][k] == 1:
-                        patches_axial.append(axial_p)
-                        patches_coronal.append(coronal_p)
-                        patches_labels.append(labels[i][j][k])
-            #if len(patches_axial) > 3000:
-             #   break
-        
-        axial_p = extract_axial(interp3, 73, 101, 104, sz, w)
-        coronal_p = extract_coronal(interp3, 73, 101, 104, sz, w)
-        patches_axial.append(axial_p)
-        patches_coronal.append(coronal_p)
-        patches_labels.append(labels[i][j][k])
-        
+
+
+        permute = np.random.permutation(len(patches_axial))
+        patches_axial = patches_axial[permute]
+        patches_coronal = patches_coronal[permute]
+        patches_labels = patches_labels[permute]
+
+        axial_train,axial_train_labels,axial_val,axial_val_labels = split_train_validation(patches_axial,patches_labels,valSize)
+        coronal_train,coronal_train_labels,coronal_val,coronal_val_labels = split_train_validation(patches_coronal,patches_labels,valSize)
+
         import pickle
         
-        with open(Output_Path+"patches_axial_0{}_0{}.lst".format(index,index2), 'wb') as fp1 ,open(Output_Path+"patches_coronal_0{}_0{}.lst".format(index,index2), 'wb') as fp2,open(Output_Path+"labels_0{}_0{}.lst".format(index,index2), 'wb') as fp3 :
-            pickle.dump(patches_axial, fp1)
-            pickle.dump(patches_coronal, fp2)
-            pickle.dump(patches_labels, fp3)
+        with open(Output_Path+"patches_axial_train_0{}_0{}.lst".format(index,index2), 'wb') as fp1, \
+                open(Output_Path+"patches_coronal_train_0{}_0{}.lst".format(index,index2), 'wb') as fp2,\
+                open(Output_Path+"labels_train_0{}_0{}.lst".format(index,index2), 'wb') as fp3, \
+                open(Output_Path+"patches_axial_val_0{}_0{}.lst".format(index, index2), 'wb') as fp4, \
+                open(Output_Path + "patches_coronal_val_0{}_0{}.lst".format(index, index2), 'wb') as fp5, \
+                open(Output_Path + "labels__val_0{}_0{}.lst".format(index, index2), 'wb') as fp6:
+            pickle.dump(axial_train, fp1)
+            pickle.dump(coronal_train, fp2)
+            pickle.dump(axial_train_labels, fp3)
+            pickle.dump(axial_val, fp4)
+            pickle.dump(coronal_val, fp5)
+            pickle.dump(axial_val_labels, fp6)
 
 
-##%%
-### extract patches
-#p_axial = extract_axial(interp3, 80, 101, 104, sz, w)
-#p_coronal = extract_coronal(interp3, 80, 101, 104, sz, w)
-##
-##
-## axial
-#pylab.figure()
-#pylab.imshow(p_axial, cmap=matplotlib.cm.gray, interpolation='nearest')
-#
-## coronal
-#pylab.figure()
-#pylab.imshow(p_coronal, cmap=matplotlib.cm.gray, interpolation='nearest')
+
