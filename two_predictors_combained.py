@@ -4,15 +4,37 @@ Created on Mon Dec 26 16:42:11 2016
 
 @author: yaniv
 """
-from model_atom_base import create_smodel
-from keras.layers import Merge,Dense,Input,merge
-from keras.models import Model,Sequential
-from keras.callbacks import EarlyStopping
+from keras.layers import Dense,Input,merge, Convolution2D, LeakyReLU, MaxPooling2D, Dropout, Flatten
+from keras.models import Model, Sequential
 import numpy as np
-import pickle
-from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
 
+
+def create_smodel(N_mod, img_rows, img_cols, index=0):
+    index = str(index)
+    smodel = Sequential(name='Seq_' + index)
+    # 1x32x32 -> 24x14x14
+    smodel.add(Convolution2D(24, 5, 5,
+                             input_shape=(N_mod, img_rows, img_cols), name='conv1_' + index))  # 1x32x32 -> 24x28x28
+    smodel.add(LeakyReLU(name='leakyrelu1_' + index))
+    smodel.add(MaxPooling2D(pool_size=(2, 2), name='maxpool1_' + index))  # 24x28x28 -> 24x14x14
+    smodel.add(Dropout(0.25, name='drop1_' + index))
+
+    # 24x14x14 -> 32x6x6
+    smodel.add(Convolution2D(32, 3, 3, name='conv2_' + index))  # 24x14x14 -> 32x12x12
+    smodel.add(LeakyReLU(name='leakyrelu2_' + index))
+    smodel.add(MaxPooling2D(pool_size=(2, 2), name='maxpool2_' + index))  # 32x12x12 -> 32x6x6
+    smodel.add(Dropout(0.25, name='drop2_' + index))
+
+    # 32x6x6 -> 48x4x4
+    smodel.add(Convolution2D(48, 3, 3, name='conv3_' + index))
+    smodel.add(LeakyReLU(name='leakyrelu3_' + index))
+    smodel.add(Dropout(0.25, name='drop3_' + index))
+
+    smodel.add(Flatten(name='flat1_' + index))
+    smodel.add(Dense(16, name='dense1_' + index))
+    smodel.add(LeakyReLU(name='leakyrelu4_' + index))
+    smodel.add(Dropout(0.25, name='drop4_' + index))
+    return smodel
 
 
 
@@ -20,6 +42,7 @@ def one_predictor_model(index=0):
     predictor = create_smodel(1,32,32,index)
     predictor.add(Dense(1,activation='sigmoid'))
     return predictor
+
 
 def two_predictors_combained_model():
     
@@ -35,8 +58,8 @@ def two_predictors_combained_model():
     out = Dense(1,activation='sigmoid',weights=[init_weights,init_bias])(merged)
     model = Model(input=[first_predictor_data,second_predictor_data],output=out)
     return model
-    #init_weights = np.ones()
-    
+
+
 def two_parameters_combained_model():
     model1 = create_smodel(1,32,32,0)
     model2 = create_smodel(1,32,32,1)
@@ -48,6 +71,7 @@ def two_parameters_combained_model():
     out = Dense(1,activation='sigmoid')(merged)
     model = Model(input=[first_predictor_data,second_predictor_data],output=out)    
     return model
+
     
 def average_two_models_prediction():    
     first_predictor = one_predictor_model(index=0)
@@ -59,98 +83,3 @@ def average_two_models_prediction():
     merged = merge([decide1,decide2],mode='ave',concat_axis=1)
     model = Model(input=[first_predictor_data,second_predictor_data],output=merged)
     return model
-    
-if __name__ == "__main__":          
-    weight_path = r'./trained_weights/'    
-    patches = r'./patches/'
-   
-# with open('patches_axial_02.lst', 'rb') as fp1 ,open('patches_coronal_02.lst', 'rb') as fp2,open('labels_02.lst', 'rb') as fp3 :
-#                axial_samples_test = np.array(pickle.load(fp1))
-#                coronal_samples_test = np.array(pickle.load(fp2))
-#                labels_samples_test =  np.array(pickle.load(fp3))   
-    stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=0, mode='auto')
-    stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.1, patience=3, verbose=0, mode='auto')
-
-    predictors = []
-    results = []
-    predictions= []
-    for i in range(2):
-        predictors.append(one_predictor_model(index=i))
-        predictors[i].compile(optimizer='rmsprop',loss='binary_crossentropy',metrics=['accuracy'])
-    combained_model = [average_two_models_prediction(),two_parameters_combained_model(),two_predictors_combained_model()]
-    for i in range(3):
-        combained_model[i].compile(optimizer='rmsprop',loss='binary_crossentropy',metrics=['accuracy'])
-  
-######## train individual predictors
-    for index in range(1,5):
-        for index2 in range(1,5):        
-            with open(patches+"patches_axial_0{}_0{}.lst".format(index,index2), 'rb') as fp1 ,open(patches+"patches_coronal_0{}_0{}.lst".format(index,index2), 'rb') as fp2,open(patches+"labels_0{}_0{}.lst".format(index,index2), 'rb') as fp3 :
-                axial_samples_train = np.array(pickle.load(fp1))
-                coronal_samples_train = np.array(pickle.load(fp2))
-                labels_samples_train =  np.array(pickle.load(fp3))
-            
-            axial_samples_train=np.expand_dims(axial_samples_train,1)
-            coronal_samples_train=np.expand_dims(coronal_samples_train,1)
-            labels_samples_train=np.expand_dims(labels_samples_train,1)
-            
-#            axial_samples_test=np.expand_dims(axial_samples_test,1)
-#            coronal_samples_test=np.expand_dims(coronal_samples_test,1)
-#            labels_samples_test=np.expand_dims(labels_samples_test,1)
-            
-            #permute data    
-            permute = np.random.permutation(len(axial_samples_train))
-            axial_samples_train = axial_samples_train[permute]
-            coronal_samples_train = coronal_samples_train[permute]
-            labels_samples_train = labels_samples_train[permute]
-            #divide train-test
-        
-        #    train_samples = [axial_samples_train,coronal_samples_train]    
-        #    train_labels = [labels_samples_train,labels_samples_train]    
-        #    test_samples = [axial_samples_test,coronal_samples_test]     
-        #    test_labels = [labels_samples_test,labels_samples_test]    
-            train_samples = [axial_samples_train,coronal_samples_train]    
-            train_labels = [labels_samples_train,labels_samples_train]    
-#            test_samples = [axial_samples_test,axial_samples_test]     
-#            test_labels = [labels_samples_test,labels_samples_test]  
-        
-
-            for i in range(2):
-                predictors[i].fit(train_samples[i], train_labels[i],batch_size=300,nb_epoch=10,validation_split=0.2,callbacks=[stop_train_callback1,stop_train_callback2],shuffle=True)
-#                results.append(predictors[i].evaluate(test_samples[i],test_labels[i]))
-#                predictions.append(predictors[i].predict(test_samples[i]))
-                predictors[i].save_weights(weight_path+'%d.h5'%(i))    
-######## test individual predictors
-    for index in range(1,2):
-        for index2 in range(1,5):
-           
-           
-           for i in range(2):
-                 results.append(predictors[i].evaluate(test_samples[i],test_labels[i]))
-                 predictions.append(predictors[i].predict(test_samples[i]))
-#    
-           
-           
-           for i in range(3):    
-                layer_dict = dict([(layer.name, layer) for layer in combained_model[i].layers])
-                layer_dict["Seq_0"].load_weights(weight_path+'0.h5',by_name=True)
-                layer_dict["Seq_1"].load_weights(weight_path+'1.h5',by_name=True)
-                combained_model[i].fit(train_samples,train_labels[0],nb_epoch=100,batch_size=300,validation_split=0.2,callbacks=[stop_train_callback1,stop_train_callback2])
-        
-            combained_model_results = [r.evaluate(test_samples,test_labels[0]) for r in combained_model ]    
-            #avg predicor
-            avg_predict = ((predictions[0] + predictions[1])/2).round()
-            avg_success = np.equal(avg_predict,test_labels[0])
-            avg_precentage = avg_success.tolist().count([True])/float(len(avg_predict))
-            
-            confusion_mat=[]
-            dice = []
-            for i in range(3):
-                from sklearn.metrics import confusion_matrix
-                predict = combained_model[i].predict(test_samples).round()
-                confusion_mat.append(confusion_matrix(test_labels[0],predict))
-                print("dice {} is "+str(float(2)*confusion_mat[i][1][1]/(2*confusion_mat[i][1][1]+confusion_mat[i][1][0]+confusion_mat[i][0][1])).format(i))
-            
-        
-
-           
-           
