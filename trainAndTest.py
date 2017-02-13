@@ -22,7 +22,7 @@ logger = get_logger()
 def generate_train(patchType, personList, batchSize=128):
     while True:
         for index in personList:
-            for index2 in range(1, 5):
+            for index2 in range(1, 3):
                 with open(patches + "patches_"+patchType+ "_train_0{}_0{}.lst".format(index, index2), 'rb') as fp1, open(
                             patches + "labels_train_0{}_0{}.lst".format(index, index2), 'rb') as fp2:
                     samples_train = np.array(pickle.load(fp1))
@@ -39,7 +39,7 @@ def generate_train(patchType, personList, batchSize=128):
 def generate_train_combined(patchType1,patchType2, personList, batchSize=128):
     while True:
         for index in personList:
-            for index2 in range(1, 5):
+            for index2 in range(1, 3):
                 with open(patches + "patches_" + patchType1 + "_train_0{}_0{}.lst".format(index, index2),'rb') as fp1, \
                  open(patches + "patches_" + patchType2 + "_train_0{}_0{}.lst".format(index, index2), 'rb') as fp2, \
                         open(patches + "labels_train_0{}_0{}.lst".format(index, index2), 'rb') as fp3:
@@ -62,7 +62,7 @@ def generate_train_combined(patchType1,patchType2, personList, batchSize=128):
 def aggregate_test(personList,patchType):
     i=1
     for index in personList:
-        for index2 in range(1, 5):
+        for index2 in range(1, 3):
             with open(patches + "patches_"+patchType+ "_0{}_0{}.lst".format(index, index2), 'rb') as fp1, open(
                             patches + "labels_0{}_0{}.lst".format(index, index2), 'rb') as fp2:
                 if i==1:
@@ -70,11 +70,8 @@ def aggregate_test(personList,patchType):
                     labels_test = pickle.load(fp2)
                     i=2
                 else:
-                    samples_test += pickle.load(fp1)
-                    labels_test += pickle.load(fp2)
-
-    samples_test = np.array(samples_test)
-    labels_test = np.array(labels_test)
+                    samples_test = np.append(samples_test,pickle.load(fp1),axis=0)
+                    labels_test = np.append(labels_test,pickle.load(fp2),axis=0)
 
     samples_test = np.expand_dims(samples_test, 1)
     labels_test = np.expand_dims(labels_test, 1)
@@ -84,7 +81,7 @@ def aggregate_test(personList,patchType):
 def aggregate_val(personList,patchType):
     i= 1
     for index in personList:
-        for index2 in range(1, 5):
+        for index2 in range(1, 3):
             with open(patches + "patches_"+patchType+ "_val_0{}_0{}.lst".format(index, index2), 'rb') as fp1, open(
                             patches + "labels__val_0{}_0{}.lst".format(index, index2), 'rb') as fp2:
                 if i==1:
@@ -92,8 +89,10 @@ def aggregate_val(personList,patchType):
                     labels_val = pickle.load(fp2)
                     i=2
                 else:
-                    samples_val += pickle.load(fp1)
-                    labels_val += pickle.load(fp2)
+                    t1 = pickle.load(fp1)
+                    t2 = pickle.load(fp2)
+                    samples_val = np.append(samples_val,t1,axis=0)
+                    labels_val = np.append(labels_val,t2,axis=0)
 
     samples_val = np.array(samples_val)
     labels_val = np.array(labels_val)
@@ -120,7 +119,7 @@ for i in range(2):
 for i in range(3):
     combined_model[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
 
-PersonTrainList = [1,2,3,4]
+PersonTrainList = [1]
 val_axial_set,val_axial_labels = aggregate_val(PersonTrainList,"axial")
 val_coronal_set,val_coronal_labels = aggregate_val(PersonTrainList,"coronal")
 val_sets = [(val_axial_set,val_axial_labels),(val_coronal_set,val_coronal_labels)]
