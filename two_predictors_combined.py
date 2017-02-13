@@ -44,7 +44,7 @@ def one_predictor_model(index=0):
     return predictor
 
 
-def two_predictors_combained_model():
+def two_predictors_combined_model():
     
     init_bias = np.full(shape=(1,),fill_value=-1)
     init_weights = np.ones((2,1))
@@ -60,7 +60,7 @@ def two_predictors_combained_model():
     return model
 
 
-def two_parameters_combained_model():
+def two_parameters_combined_model():
     model1 = create_smodel(1,32,32,0)
     model2 = create_smodel(1,32,32,1)
     first_predictor_data = Input(shape=(1,32,32))

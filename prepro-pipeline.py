@@ -122,7 +122,7 @@ def split_train_validation(data, labels, _valSize):
 # In[6]:
 
 # load volume
-for index in range(2,6):
+for index in range(1,2):
     for index2 in range(1,5):
         #Person = "person0%d"%(index)
         FLAIR_filename = Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(index,index2)
