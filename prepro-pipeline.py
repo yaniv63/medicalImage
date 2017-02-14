@@ -122,7 +122,7 @@ def split_train_validation(data, labels, _valSize):
 # In[6]:
 
 # load volume
-for index in range(1,2):
+for index in range(1,6):
     for index2 in range(1,5):
         #Person = "person0%d"%(index)
         FLAIR_filename = Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(index,index2)
@@ -130,6 +130,8 @@ for index in range(1,2):
         FLAIR_labels_1 = Src_Path+Labels_Path+"training0{}_0{}_mask1.nii".format(index,index2)
         vol = np.load(FLAIR_filename)
         labels = nb.load(FLAIR_labels_1).get_data()
+        labels = labels.T
+        labels = np.rot90(labels, 2, axes=(1, 2))
        
         # In[7]:
         
