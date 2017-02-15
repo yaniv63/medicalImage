@@ -12,6 +12,7 @@ import scipy.io
 import itertools
 import nibabel as nb
 import scipy.misc
+from logging_tools import  get_logger
 
 FLAIR_th = 0.91
 WM_prior_th = 0.5
@@ -117,6 +118,7 @@ def split_train_validation(data, labels, _valSize):
     train_data, train_labels = data[:val_slice], labels[:val_slice]
     return train_data, train_labels, val_data, val_labels
 
+logger = get_logger()
 
 
 # In[6]:
@@ -124,6 +126,8 @@ def split_train_validation(data, labels, _valSize):
 # load volume
 for index in range(1,6):
     for index2 in range(1,5):
+        logger.info("person {} time {} creating patches".format(index,index2))
+
         #Person = "person0%d"%(index)
         FLAIR_filename = Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(index,index2)
         WM_filename = Src_Path+WM_Path+"Person0{}_Time0{}.npy".format(index,index2)    
@@ -136,9 +140,9 @@ for index in range(1,6):
         # In[7]:
         
         # initialize interpolator
-        x = np.linspace(0, vol.shape[2]-1,vol.shape[2])
-        y = np.linspace(0, vol.shape[1]-1,vol.shape[1])
-        z = np.linspace(0, vol.shape[0]-1,vol.shape[0])
+        x = np.linspace(0, vol.shape[2]-1,vol.shape[2],dtype='int')
+        y = np.linspace(0, vol.shape[1]-1,vol.shape[1],dtype='int')
+        z = np.linspace(0, vol.shape[0]-1,vol.shape[0],dtype='int')
         interp3 = RegularGridInterpolator((z,y,x), vol)
         #%%
         candidate_mask = apply_masks(FLAIR_filename,WM_filename)    
@@ -181,6 +185,8 @@ for index in range(1,6):
             pickle.dump(axial_val, fp4)
             pickle.dump(coronal_val, fp5)
             pickle.dump(axial_val_labels, fp6)
+            logger.info("person {} finished patches and saved".format(index))
+
 
 
 
