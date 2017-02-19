@@ -152,16 +152,16 @@ for index in range(1,6):
         patches_axial = []
         patches_coronal = []
         patches_labels = []
-        voxel_list = itertools.product(x,y,z)
+        voxel_list = itertools.product(z,y,x)
         zero_count = 0
         for i,j,k in voxel_list:
             if candidate_mask[i][j][k] == True:
-                axial_p = extract_axial(interp3, i, j, k, sz, w)
-                coronal_p = extract_coronal(interp3, i, j, k, sz, w)
-                if type(axial_p) == np.ndarray and type(coronal_p) == np.ndarray: #not NULL        
-                        patches_axial.append(axial_p)
-                        patches_coronal.append(coronal_p)
-                        patches_labels.append(labels[i][j][k])
+                axial_p = extract_axial(interp3, k, j, i, sz, w)
+                coronal_p = extract_coronal(interp3, k, j, i, sz, w)
+                if type(axial_p) == np.ndarray and type(coronal_p) == np.ndarray: #not NULL
+                    patches_axial.append(axial_p)
+                    patches_coronal.append(coronal_p)
+                    patches_labels.append(labels[i][j][k])
 
         permute = np.random.permutation(len(patches_axial))
         patches_axial = np.array(patches_axial)[permute]

@@ -8,6 +8,7 @@ Created on Mon Dec 26 16:42:11 2016
 from keras.callbacks import EarlyStopping, LambdaCallback
 import pickle
 import numpy as np
+from sklearn.metrics import confusion_matrix
 
 from two_predictors_combined import one_predictor_model, average_two_models_prediction, two_parameters_combined_model, \
     two_predictors_combined_model
@@ -19,7 +20,7 @@ patches = r'./patches/'
 logger = get_logger()
 
 
-def generate_train(patchType, personList, batchSize=128):
+def generate_train(patchType, personList, batchSize=5000):
     while True:
         for index in personList:
             for index2 in range(1, 5):
@@ -38,7 +39,7 @@ def generate_train(patchType, personList, batchSize=128):
                     samples_train[i * batchSize:(i + 1) * batchSize], labels_train[i * batchSize:(i + 1) * batchSize])
 
 
-def generate_train_combined(patchType1, patchType2, personList, batchSize=128):
+def generate_train_combined(patchType1, patchType2, personList, batchSize=5000):
     while True:
         for index in personList:
             for index2 in range(1, 5):
@@ -108,21 +109,35 @@ def aggregate_val(personList, patchType):
     return (samples_val, labels_val)
 
 
+def calc_confusion_mat(model,samples,labels,identifier=None):
+    predict = model.predict(samples).round()
+    confusion_mat = confusion_matrix(labels,predict)
+    logger.debug("confusion_mat {} is {} ".format(identifier, str(confusion_mat)))
+    return confusion_mat
+
+
+def calc_dice(confusion_mat,identifier):
+    dice = float(2) * confusion_mat[1][1] / (
+        2 * confusion_mat[1][1] + confusion_mat[1][0] + confusion_mat[0][1])
+    logger.info("model {} dice {} is ".format(identifier,dice))
+
+
 # ######## create callbacks
 logger.info("creating callbacks")
 stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=0, mode='auto')
-stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.1, patience=3, verbose=0, mode='auto')
+stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.01, patience=3, verbose=0, mode='auto')
 print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
 logger.debug("epoch {} loss {:.5f} acc {:.5f} val_los {:.5f} val_acc {:.5f}".
              format(epoch, logs['loss'], logs['acc'], logs['val_loss'], logs['val_acc'])))
 
-mycallbacks = [stop_train_callback1, stop_train_callback2,print_logs]
+mycallbacks = [print_logs,stop_train_callback1, stop_train_callback2]
 predictors = []
 logger.info("creating models")
-for i in range(2):
+for i in range(1):
     predictors.append(one_predictor_model(index=i))
     predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
-    combined_model = [average_two_models_prediction(), two_parameters_combined_model(),
+
+combined_model = [average_two_models_prediction(), two_parameters_combined_model(),
                       two_predictors_combined_model()]
 for i in range(3):
     combined_model[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
@@ -138,9 +153,9 @@ axial_generator = generate_train("axial", PersonTrainList)
 coronal_generator = generate_train("coronal", PersonTrainList)
 train_generator = [axial_generator, coronal_generator]
 
-for i in range(2):
+for i in range(1):
     logger.debug("training individual model {}".format(i))
-    predictors[i].fit_generator(train_generator[i], samples_per_epoch=10000, nb_epoch=50, callbacks=mycallbacks,
+    predictors[i].fit_generator(train_generator[i], samples_per_epoch=500000, nb_epoch=8, callbacks=mycallbacks,
                                 nb_worker=4, validation_data=val_sets[i])
     predictors[i].save_weights(weight_path + '%d.h5' % (i))
 ######## test individual predictors
@@ -159,16 +174,20 @@ for i in range(2):
     results.append(predictors[i].evaluate(test_samples[i], test_labels[i]))
     predictions.append(predictors[i].predict(test_samples[i]))
     logger.info("predictor {} loss {} acc {}".format(i, predictions[i][0], predictions[i][1]))
-gen = generate_train_combined("axial", "coronal", PersonTrainList)
+    confusion_mat = calc_confusion_mat(predictors[i], val_sets[i][0], val_sets[i][1], "individual val {}".format(i))
+    calc_dice(confusion_mat, "individual val {}".format(i))
+    confusion_mat = calc_confusion_mat(predictors[i], test_samples[i], test_labels[i], "individual test {}".format(i))
+    calc_dice(confusion_mat, "individual test {}".format(i))
 ######## train predictors combinations
 logger.info("training combined models")
+gen = generate_train_combined("axial", "coronal", PersonTrainList)
 
 for i in range(3):
     logger.debug("training combined model {}".format(i))
     layer_dict = dict([(layer.name, layer) for layer in combined_model[i].layers])
     layer_dict["Seq_0"].load_weights(weight_path + '0.h5', by_name=True)
     layer_dict["Seq_1"].load_weights(weight_path + '1.h5', by_name=True)
-    combined_model[i].fit_generator(gen, samples_per_epoch=10000, nb_epoch=50, callbacks=mycallbacks,
+    combined_model[i].fit_generator(gen, samples_per_epoch=500000, nb_epoch=8, callbacks=mycallbacks,
                                     validation_data=combined_val)
     combined_model[i].save_weights(weight_path + 'combined_%d.h5' % (i))
 ######## test predictors combinations
@@ -178,20 +197,18 @@ combined_model_results = [r.evaluate(test_samples, test_labels[0]) for r in comb
 for i in range(3):
     logger.info(
         "combined_model {} loss {} acc {}".format(i, combined_model_results[i][0], combined_model_results[i][1]))
-# avg predicor
+#avg predicor
 avg_predict = ((predictions[0] + predictions[1]) / 2).round()
 avg_success = np.equal(avg_predict, test_labels[0])
 avg_precentage = avg_success.tolist().count([True]) / float(len(avg_predict))
 logger.info("avg_precentage  (acc)  {}".format(avg_precentage))
 
-confusion_mat = []
-dice = []
 for i in range(3):
-    from sklearn.metrics import confusion_matrix
-
-    predict = combined_model[i].predict(test_samples).round()
-    confusion_mat.append(confusion_matrix(test_labels[0], predict))
-    logger.info("confusion_mat {} is {}".format(i, str(confusion_mat[i])))
-    logger.info("dice {} is ".format(i) + str(float(2) * confusion_mat[i][1][1] / (
-        2 * confusion_mat[i][1][1] + confusion_mat[i][1][0] + confusion_mat[i][0][1])))
+    confusion_mat = calc_confusion_mat(combined_model[i], combined_val[0],  combined_val[1], "combined val {}".format(i))
+    calc_dice(confusion_mat, "combined val {}".format(i))
+    confusion_mat = calc_confusion_mat(combined_model[i],test_samples,test_labels[0],"combined test {}".format(i))
+    calc_dice(confusion_mat,"combined test {}".format(i))
 logger.info("finish train and test models")
+
+
+
