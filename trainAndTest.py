@@ -173,7 +173,7 @@ predictions = []
 for i in range(2):
     results.append(predictors[i].evaluate(test_samples[i], test_labels[i]))
     predictions.append(predictors[i].predict(test_samples[i]))
-    logger.info("predictor {} loss {} acc {}".format(i, predictions[i][0], predictions[i][1]))
+    logger.info("predictor {} loss {} acc {}".format(i, results[i][0], results[i][1]))
     confusion_mat = calc_confusion_mat(predictors[i], val_sets[i][0], val_sets[i][1], "individual val {}".format(i))
     calc_dice(confusion_mat, "individual val {}".format(i))
     confusion_mat = calc_confusion_mat(predictors[i], test_samples[i], test_labels[i], "individual test {}".format(i))
