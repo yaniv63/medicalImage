@@ -133,14 +133,14 @@ logger.debug("epoch {} loss {:.5f} acc {:.5f} val_los {:.5f} val_acc {:.5f}".
 mycallbacks = [print_logs,stop_train_callback1, stop_train_callback2]
 predictors = []
 logger.info("creating models")
-for i in range(1):
+for i in range(2):
     predictors.append(one_predictor_model(index=i))
-    predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
+    predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
 
 combined_model = [average_two_models_prediction(), two_parameters_combined_model(),
                       two_predictors_combined_model()]
 for i in range(3):
-    combined_model[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
+    combined_model[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
 
 PersonTrainList = [1,2,3,4]
 val_axial_set,val_axial_labels = aggregate_val(PersonTrainList,"axial")
@@ -153,7 +153,7 @@ axial_generator = generate_train("axial", PersonTrainList)
 coronal_generator = generate_train("coronal", PersonTrainList)
 train_generator = [axial_generator, coronal_generator]
 
-for i in range(1):
+for i in range(2):
     logger.debug("training individual model {}".format(i))
     predictors[i].fit_generator(train_generator[i], samples_per_epoch=500000, nb_epoch=8, callbacks=mycallbacks,
                                 nb_worker=4, validation_data=val_sets[i])
