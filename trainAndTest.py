@@ -4,8 +4,9 @@ Created on Mon Dec 26 16:42:11 2016
 
 @author: yaniv
 """
-
-from keras.callbacks import EarlyStopping, LambdaCallback
+from os import path, makedirs
+from datetime import datetime
+from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
 import pickle
 import numpy as np
 from sklearn.metrics import confusion_matrix
@@ -16,8 +17,7 @@ from logging_tools import get_logger
 
 weight_path = r'./trained_weights/'
 patches = r'./patches/'
-
-logger = get_logger()
+runs_dir = r'./runs/'
 
 
 def generate_train(patchType, personList, batchSize=5000):
@@ -121,11 +121,19 @@ def calc_dice(confusion_mat,identifier):
         2 * confusion_mat[1][1] + confusion_mat[1][0] + confusion_mat[0][1])
     logger.info("model {} dice {} is ".format(identifier,dice))
 
+# create run folder
+time = datetime.now().strftime('%d_%m_%Y_%H_%M')
+run_dir = runs_dir+time + '/'
+if not path.exists(run_dir):
+    makedirs(run_dir)
+# create logger
+logger = get_logger(run_dir)
 
 # ######## create callbacks
+
 logger.info("creating callbacks")
-stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=0, mode='auto')
-stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.01, patience=3, verbose=0, mode='auto')
+stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=1, mode='auto')
+stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5, verbose=1, mode='auto')
 print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
 logger.debug("epoch {} loss {:.5f} acc {:.5f} val_los {:.5f} val_acc {:.5f}".
              format(epoch, logs['loss'], logs['acc'], logs['val_loss'], logs['val_acc'])))
@@ -155,10 +163,10 @@ train_generator = [axial_generator, coronal_generator]
 
 for i in range(2):
     logger.debug("training individual model {}".format(i))
-    predictors[i].fit_generator(train_generator[i], samples_per_epoch=500000, nb_epoch=8, callbacks=mycallbacks,
-                                nb_worker=4, validation_data=val_sets[i])
-    predictors[i].save_weights(weight_path + '%d.h5' % (i))
-######## test individual predictors
+    predictors[i].fit_generator(train_generator[i], samples_per_epoch=500000, nb_epoch=50, callbacks=mycallbacks,
+                                 nb_worker=4, validation_data=val_sets[i])
+    predictors[i].save_weights(run_dir +'%d.h5' % (i))
+# ######## test individual predictors
 logger.info("testing individual models")
 
 test_axial_samples, test_axial_labels = aggregate_test([5], "axial")
@@ -178,18 +186,18 @@ for i in range(2):
     calc_dice(confusion_mat, "individual val {}".format(i))
     confusion_mat = calc_confusion_mat(predictors[i], test_samples[i], test_labels[i], "individual test {}".format(i))
     calc_dice(confusion_mat, "individual test {}".format(i))
-######## train predictors combinations
+# ######## train predictors combinations
 logger.info("training combined models")
 gen = generate_train_combined("axial", "coronal", PersonTrainList)
 
 for i in range(3):
     logger.debug("training combined model {}".format(i))
     layer_dict = dict([(layer.name, layer) for layer in combined_model[i].layers])
-    layer_dict["Seq_0"].load_weights(weight_path + '0.h5', by_name=True)
-    layer_dict["Seq_1"].load_weights(weight_path + '1.h5', by_name=True)
-    combined_model[i].fit_generator(gen, samples_per_epoch=500000, nb_epoch=8, callbacks=mycallbacks,
+    layer_dict["Seq_0"].load_weights(run_dir + '0.h5', by_name=True)
+    layer_dict["Seq_1"].load_weights(run_dir + '1.h5', by_name=True)
+    combined_model[i].fit_generator(gen, samples_per_epoch=500000, nb_epoch=50, callbacks=mycallbacks,
                                     validation_data=combined_val)
-    combined_model[i].save_weights(weight_path + 'combined_%d.h5' % (i))
+    combined_model[i].save_weights(run_dir + 'combined_%d.h5' % (i))
 ######## test predictors combinations
 logger.info("test combined models")
 

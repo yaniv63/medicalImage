@@ -5,6 +5,7 @@ Created on Mon Dec 19 16:35:06 2016
 @author: yaniv
 """
 import numpy as np
+import random
 import pylab
 import scipy.ndimage.morphology as mrph
 import scipy.ndimage as ndimage
@@ -17,6 +18,7 @@ from logging_tools import  get_logger
 FLAIR_th = 0.91
 WM_prior_th = 0.5
 valSize = 0.2
+negative_threshold = 0.4
 
 Src_Path = r"./train/"
 Data_Path = r"data/"
@@ -118,6 +120,19 @@ def split_train_validation(data, labels, _valSize):
     train_data, train_labels = data[:val_slice], labels[:val_slice]
     return train_data, train_labels, val_data, val_labels
 
+
+def sample_negative_samples(axial_arr, coronal_arr, labels):
+    output_axial = []
+    output_coronal = []
+    output_labels = []
+    for i in range(len(axial_arr)):
+        if labels[i] == 1 or random.random() < negative_threshold:
+            output_axial.append(axial_arr[i])
+            output_coronal.append(coronal_arr[i])
+            output_labels.append(labels[i])
+
+    return output_axial, output_coronal, output_labels
+
 logger = get_logger()
 
 
@@ -163,6 +178,7 @@ for index in range(1,6):
                     patches_coronal.append(coronal_p)
                     patches_labels.append(labels[i][j][k])
 
+        patches_axial, patches_coronal , patches_labels = sample_negative_samples(patches_axial, patches_coronal , patches_labels)
         permute = np.random.permutation(len(patches_axial))
         patches_axial = np.array(patches_axial)[permute]
         patches_coronal = np.array(patches_coronal)[permute]
@@ -186,6 +202,8 @@ for index in range(1,6):
             pickle.dump(coronal_val, fp5)
             pickle.dump(axial_val_labels, fp6)
             logger.info("person {} finished patches and saved".format(index))
+
+
 
 
 
