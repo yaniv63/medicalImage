@@ -138,12 +138,13 @@ print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
 logger.debug("epoch {} loss {:.5f} acc {:.5f} val_los {:.5f} val_acc {:.5f}".
              format(epoch, logs['loss'], logs['acc'], logs['val_loss'], logs['val_acc'])))
 
-mycallbacks = [print_logs,stop_train_callback1, stop_train_callback2]
+mycallbacks = [print_logs,stop_train_callback1, stop_train_callback2,None]
 predictors = []
 logger.info("creating models")
 for i in range(2):
     predictors.append(one_predictor_model(index=i))
     predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
+    predictors[i].load_weights(run_dir + '%d.h5' % (i))
 
 combined_model = [average_two_models_prediction(), two_parameters_combined_model(),
                       two_predictors_combined_model()]
@@ -155,17 +156,17 @@ val_axial_set,val_axial_labels = aggregate_val(PersonTrainList,"axial")
 val_coronal_set,val_coronal_labels = aggregate_val(PersonTrainList,"coronal")
 val_sets = [(val_axial_set,val_axial_labels),(val_coronal_set,val_coronal_labels)]
 combined_val = ([val_axial_set,val_coronal_set],val_coronal_labels)
-######## train individual predictors
-logger.info("training individual models")
-axial_generator = generate_train("axial", PersonTrainList)
-coronal_generator = generate_train("coronal", PersonTrainList)
-train_generator = [axial_generator, coronal_generator]
-
-for i in range(2):
-    logger.debug("training individual model {}".format(i))
-    predictors[i].fit_generator(train_generator[i], samples_per_epoch=500000, nb_epoch=50, callbacks=mycallbacks,
-                                 nb_worker=4, validation_data=val_sets[i])
-    predictors[i].save_weights(run_dir +'%d.h5' % (i))
+# ######## train individual predictors
+# logger.info("training individual models")
+# axial_generator = generate_train("axial", PersonTrainList)
+# coronal_generator = generate_train("coronal", PersonTrainList)
+# train_generator = [axial_generator, coronal_generator]
+#
+# for i in range(2):
+#     logger.debug("training individual model {}".format(i))
+#     predictors[i].fit_generator(train_generator[i], samples_per_epoch=500000, nb_epoch=50, callbacks=mycallbacks,
+#                                  nb_worker=4, validation_data=val_sets[i])
+#     predictors[i].save_weights(run_dir +'%d.h5' % (i))
 # ######## test individual predictors
 logger.info("testing individual models")
 
@@ -178,14 +179,14 @@ test_labels = [test_axial_labels, test_coronal_labels]
 results = []
 predictions = []
 
-for i in range(2):
-    results.append(predictors[i].evaluate(test_samples[i], test_labels[i]))
-    predictions.append(predictors[i].predict(test_samples[i]))
-    logger.info("predictor {} loss {} acc {}".format(i, results[i][0], results[i][1]))
-    confusion_mat = calc_confusion_mat(predictors[i], val_sets[i][0], val_sets[i][1], "individual val {}".format(i))
-    calc_dice(confusion_mat, "individual val {}".format(i))
-    confusion_mat = calc_confusion_mat(predictors[i], test_samples[i], test_labels[i], "individual test {}".format(i))
-    calc_dice(confusion_mat, "individual test {}".format(i))
+# for i in range(2):
+#     results.append(predictors[i].evaluate(test_samples[i], test_labels[i]))
+#     predictions.append(predictors[i].predict(test_samples[i]))
+#     logger.info("predictor {} loss {} acc {}".format(i, results[i][0], results[i][1]))
+#     confusion_mat = calc_confusion_mat(predictors[i], val_sets[i][0], val_sets[i][1], "individual val {}".format(i))
+#     calc_dice(confusion_mat, "individual val {}".format(i))
+#     confusion_mat = calc_confusion_mat(predictors[i], test_samples[i], test_labels[i], "individual test {}".format(i))
+#     calc_dice(confusion_mat, "individual test {}".format(i))
 # ######## train predictors combinations
 logger.info("training combined models")
 gen = generate_train_combined("axial", "coronal", PersonTrainList)
@@ -195,9 +196,11 @@ for i in range(3):
     layer_dict = dict([(layer.name, layer) for layer in combined_model[i].layers])
     layer_dict["Seq_0"].load_weights(run_dir + '0.h5', by_name=True)
     layer_dict["Seq_1"].load_weights(run_dir + '1.h5', by_name=True)
+    save_weights = ModelCheckpoint(filepath=run_dir + 'combined_{}.h5'.format(i),monitor='val_acc',save_best_only=True, save_weights_only=True)
+    mycallbacks[3] = save_weights
     combined_model[i].fit_generator(gen, samples_per_epoch=500000, nb_epoch=50, callbacks=mycallbacks,
                                     validation_data=combined_val)
-    combined_model[i].save_weights(run_dir + 'combined_%d.h5' % (i))
+    #combined_model[i].save_weights(run_dir + 'combined_%d.h5' % (i))
 ######## test predictors combinations
 logger.info("test combined models")
 
