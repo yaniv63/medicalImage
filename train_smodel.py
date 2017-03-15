@@ -1,14 +1,22 @@
 # -*- coding: utf-8 -*-
 """
+Created on Wed Dec 21 19:32:39 2016
+
+@author: yaniv
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Dec 26 16:42:11 2016
 
 @author: yaniv
 """
+import numpy as np
+np.random.seed(178)
 from os import path, makedirs
 from datetime import datetime
 from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
 import pickle
-import numpy as np
 from sklearn.metrics import confusion_matrix
 
 from two_predictors_combined import one_predictor_model, average_two_models_prediction, two_parameters_combined_model, \
@@ -29,12 +37,13 @@ def generate_train(patchType, personList, batchSize=256):
                     samples_train = np.array(pickle.load(fp1))
                     labels_train = np.array(pickle.load(fp2))
 
-                permute = np.random.permutation(len(samples_train))
-		samples_train = samples_train[permute]
-		labels_train = labels_train[permute]
-
-		samples_train = np.expand_dims(samples_train, 1)
+                samples_train = np.expand_dims(samples_train, 1)
                 labels_train = np.expand_dims(labels_train, 1)
+
+		permute = np.random.permutation(len(samples_train))
+        	samples_train = np.array(samples_train)[permute]
+                labels_train = np.array(labels_train)[permute]
+
                 k = samples_train.shape[0] / batchSize
 
                 # divide batches
@@ -53,11 +62,6 @@ def generate_train_combined(patchType1, patchType2, personList, batchSize=256):
                     samples1_train = np.array(pickle.load(fp1))
                     samples2_train = np.array(pickle.load(fp2))
                     labels_train = np.array(pickle.load(fp3))
-
-		permute = np.random.permutation(len(samples1_train))
-                samples1_train = samples1_train[permute]
-                samples2_train = samples2_train[permute]
-                labels_train = labels_train[permute]
 
                 samples1_train = np.expand_dims(samples1_train, 1)
                 samples2_train = np.expand_dims(samples2_train, 1)
@@ -144,38 +148,33 @@ logger.info("creating callbacks")
 stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=1, mode='auto')
 stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5, verbose=1, mode='auto')
 print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
-logger.debug("epoch {} loss {:.5f} acc {:.5f} val_los {:.5f} val_acc {:.5f}".
-             format(epoch, logs['loss'], logs['acc'], logs['val_loss'], logs['val_acc'])))
+logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
+             format(epoch, logs['loss'], logs['acc'],logs['fmeasure'], logs['val_loss'], logs['val_acc'],logs['val_fmeasure'])))
 
-mycallbacks = [print_logs,stop_train_callback1, stop_train_callback2,None]
-single_callbacks =  [print_logs,stop_train_callback1, stop_train_callback2]
+mycallbacks = [print_logs,stop_train_callback1, stop_train_callback2]
 predictors = []
 logger.info("creating models")
-for i in range(2):
+for i in range(1):
     predictors.append(one_predictor_model(index=i))
     predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
-
-combined_model = [average_two_models_prediction(), two_parameters_combined_model(),
-                      two_predictors_combined_model()]
-for i in range(3):
-    combined_model[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
 
 PersonTrainList = [1,2,3,4]
 val_axial_set,val_axial_labels = aggregate_val(PersonTrainList,"axial")
 val_coronal_set,val_coronal_labels = aggregate_val(PersonTrainList,"coronal")
 val_sets = [(val_axial_set,val_axial_labels),(val_coronal_set,val_coronal_labels)]
 combined_val = ([val_axial_set,val_coronal_set],val_coronal_labels)
- ######## train individual predictors
+######## train individual predictors
 logger.info("training individual models")
 axial_generator = generate_train("axial", PersonTrainList)
 coronal_generator = generate_train("coronal", PersonTrainList)
 train_generator = [axial_generator, coronal_generator]
 
-for i in range(2):
+for i in range(1):
     logger.debug("training individual model {}".format(i))
-    predictors[i].fit_generator(train_generator[i], samples_per_epoch=500000, nb_epoch=50, callbacks=single_callbacks,nb_worker=4, validation_data=val_sets[i])
+    history = predictors[i].fit_generator(train_generator[i], samples_per_epoch=340000, nb_epoch=50, callbacks=mycallbacks,
+                                 nb_worker=4, validation_data=val_sets[i])
     predictors[i].save_weights(run_dir +'%d.h5' % (i))
- ######## test individual predictors
+# ######## test individual predictors
 logger.info("testing individual models")
 
 test_axial_samples, test_axial_labels = aggregate_test([5], "axial")
@@ -187,7 +186,7 @@ test_labels = [test_axial_labels, test_coronal_labels]
 results = []
 predictions = []
 
-for i in range(2):
+for i in range(1):
     results.append(predictors[i].evaluate(test_samples[i], test_labels[i]))
     predictions.append(predictors[i].predict(test_samples[i]))
     logger.info("predictor {} loss {} acc {}".format(i, results[i][0], results[i][1]))
@@ -195,38 +194,18 @@ for i in range(2):
     calc_dice(confusion_mat, "individual val {}".format(i))
     confusion_mat = calc_confusion_mat(predictors[i], test_samples[i], test_labels[i], "individual test {}".format(i))
     calc_dice(confusion_mat, "individual test {}".format(i))
- ######## train predictors combinations
-logger.info("training combined models")
-gen = generate_train_combined("axial", "coronal", PersonTrainList)
 
-for i in range(3):
-    logger.debug("training combined model {}".format(i))
-    layer_dict = dict([(layer.name, layer) for layer in combined_model[i].layers])
-    layer_dict["Seq_0"].load_weights(run_dir + '0.h5', by_name=True)
-    layer_dict["Seq_1"].load_weights(run_dir + '1.h5', by_name=True)
-    save_weights = ModelCheckpoint(filepath=run_dir + 'combined_{}.h5'.format(i),monitor='val_acc',save_best_only=True, save_weights_only=True)
-    mycallbacks[3] = save_weights
-    combined_model[i].fit_generator(gen, samples_per_epoch=500000, nb_epoch=50, callbacks=mycallbacks,validation_data=combined_val)
-    #combined_model[i].load_weights(run_dir + 'combined_%d.h5' % (i))
-######## test predictors combinations
-logger.info("test combined models")
-
-combined_model_results = [r.evaluate(test_samples, test_labels[0]) for r in combined_model]
-for i in range(3):
-    logger.info(
-        "combined_model {} loss {} acc {}".format(i, combined_model_results[i][0], combined_model_results[i][1]))
-##avg predicor
-avg_predict = ((predictions[0] + predictions[1]) / 2).round()
-avg_success = np.equal(avg_predict, test_labels[0])
-avg_precentage = avg_success.tolist().count([True]) / float(len(avg_predict))
-logger.info("avg_precentage  (acc)  {}".format(avg_precentage))
-
-for i in range(3):
-    confusion_mat = calc_confusion_mat(combined_model[i], combined_val[0],  combined_val[1], "combined val {}".format(i))
-    calc_dice(confusion_mat, "combined val {}".format(i))
-    confusion_mat = calc_confusion_mat(combined_model[i],test_samples,test_labels[0],"combined test {}".format(i))
-    calc_dice(confusion_mat,"combined test {}".format(i))
-logger.info("finish train and test models")
-
-
-
+metrics = ['acc','val_acc','loss','val_loss','fmeasure','val_fmeasure']
+#import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+import pylab as plt
+for i in [0,2,4]:
+    plt.clf()
+    plt.plot(history.history[metrics[i]])
+    plt.plot(history.history[metrics[i+1]])
+    plt.title('model ' + metrics[i])
+    plt.ylabel(metrics[i])
+    plt.xlabel('epoch')
+    plt.legend(['train', 'validation'], loc='upper left')
+    plt.savefig(run_dir+'model_' + metrics[i]+'.png')

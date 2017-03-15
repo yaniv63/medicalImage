@@ -1,5 +1,5 @@
 
-def get_logger(path='.logs/'):
+def get_logger(path='logs/'):
     # add logging
     import logging
     # set up logging to file - see previous section for more details
