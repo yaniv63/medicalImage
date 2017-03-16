@@ -38,9 +38,9 @@ def create_smodel(N_mod, img_rows, img_cols, index=0):
 
 
 
-def one_predictor_model(index=0):
-    predictor = create_smodel(1,32,32,index)
-    predictor.add(Dense(1,activation='sigmoid'))
+def one_predictor_model(N_mod = 1, img_rows = 32, img_cols = 32,index=0):
+    predictor = create_smodel(N_mod,img_rows,img_cols,index)
+    predictor.add(Dense(1,activation='sigmoid',name='out{}'.format(index)))
     return predictor
 
 
@@ -83,3 +83,46 @@ def average_two_models_prediction():
     merged = merge([decide1,decide2],mode='ave',concat_axis=1)
     model = Model(input=[first_predictor_data,second_predictor_data],output=merged)
     return model
+
+def average_n_models_prediction(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
+    predictors = []
+    decisions = []
+    data = []
+    for i in range(n):
+        predictors.append(one_predictor_model(index=i))
+        data.append(Input(shape=(N_mod, img_rows, img_cols),name='input{}'.format(i)))
+        decisions.append(predictors[i](data[i]))
+    merged = merge(decisions,mode='ave',concat_axis=1)
+    model = Model(input=data,output=merged)
+    return model
+
+
+def n_predictors_combined_model(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
+    init_bias = np.full(shape=(1,), fill_value=-1)
+    init_weights = np.ones((n, 1))
+    predictors = []
+    decisions = []
+    data = []
+    for i in range(n):
+        predictors.append(one_predictor_model(index=i))
+        data.append(Input(shape=(N_mod, img_rows, img_cols),name='input{}'.format(i)))
+        decisions.append(predictors[i](data[i]))
+    merged = merge(decisions, mode='concat', concat_axis=1)
+    out = Dense(1, activation='sigmoid', weights=[init_weights, init_bias])(merged)
+    model = Model(input=data, output=out)
+    return model
+
+def n_parameters_combined_model(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
+    predictors = []
+    params = []
+    data = []
+    for i in range(n):
+        predictors.append(create_smodel(N_mod, img_rows, img_cols,index=i))
+        data.append(Input(shape=(N_mod, img_rows, img_cols), name='input{}'.format(i)))
+        params.append(predictors[i](data[i]))
+    merged = merge(inputs=params, mode='concat', concat_axis=1)
+    out = Dense(1, activation='sigmoid')(merged)
+    model = Model(input=data, output=out)
+    return model
+
+

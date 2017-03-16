@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 import numpy as np
 import pylab
@@ -21,8 +21,8 @@ WM_prior_th = 0.5
 
 # In[9]:
 
-FLAIR_vol_filename = r"/home/yaniv/src/medicalImaging/person1_time1/Person01_Time01_FLAIR.npy"
-WM_filename = r"/home/yaniv/src/medicalImaging/person1_time1/Person01_Time01.npy"
+FLAIR_vol_filename = r"D:\thesis\MS_data\Goldberger\volumes\train\data\Person01_Time01_FLAIR.npy"
+WM_filename = r"D:\thesis\MS_data\Goldberger\volumes\train\WM\Person01_Time01.npy"
 
 
 # In[10]:
@@ -40,7 +40,7 @@ def binary_disk(r):
 
 # In[11]:
 
-FLAIR_vol = np.load(FLAIR_vol_filename)
+FLAIR_vol = np.load(vol_filename)
 WM = np.load(WM_filename)
 
 # dilate WM mask
@@ -58,12 +58,12 @@ candidate_mask = np.logical_and(FLAIR_mask, WM_mask)
 # In[15]:
 
 # display resulted mask
-#get_ipython().magic(u'matplotlib qt')
+get_ipython().magic(u'matplotlib qt')
 
 import matplotlib
 import pylab
 
-z = 70
+z = 90
 pylab.figure()
 pylab.imshow(FLAIR_vol[z,:,:], cmap=matplotlib.cm.gray)
 pylab.figure()
