@@ -57,8 +57,9 @@ def aggregate_data(personList, patchType):
 
     return (samples_val, labels_val)
 
-PersonTrainList = [1]
-val_axial_set,val_axial_labels = aggregate_val(PersonTrainList,"axial")
+PersonTrainList = [2,3,4]
+PersonValList = [1]
+val_axial_set,val_axial_labels = aggregate_val(PersonValList,"axial")
 data_axial_set,data_axial_labels = aggregate_data(PersonTrainList,"axial")
 
 val_0_counter = 0
