@@ -158,9 +158,10 @@ for i in range(1):
     predictors.append(one_predictor_model(index=i))
     predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
 
-PersonTrainList = [1,2,3,4]
-val_axial_set,val_axial_labels = aggregate_val(PersonTrainList,"axial")
-val_coronal_set,val_coronal_labels = aggregate_val(PersonTrainList,"coronal")
+PersonTrainList = [1,2,3]
+PersonValList = [4]
+val_axial_set,val_axial_labels = aggregate_val(PersonValList,"axial")
+val_coronal_set,val_coronal_labels = aggregate_val(PersonValList,"coronal")
 val_sets = [(val_axial_set,val_axial_labels),(val_coronal_set,val_coronal_labels)]
 combined_val = ([val_axial_set,val_coronal_set],val_coronal_labels)
 ######## train individual predictors
