@@ -6,21 +6,23 @@ Created on Wed Dec 21 19:32:39 2016
 """
 
 # -*- coding: utf-8 -*-
+from sklearn import pipeline
+
 """
 Created on Mon Dec 26 16:42:11 2016
 
 @author: yaniv
 """
 import numpy as np
-np.random.seed(178)
 from os import path, makedirs
 from datetime import datetime
 from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
 import pickle
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import KFold
 
-from two_predictors_combined import one_predictor_model, average_two_models_prediction, two_parameters_combined_model, \
-    two_predictors_combined_model
+
+from two_predictors_combined import one_predictor_model
 from logging_tools import get_logger
 
 weight_path = r'./trained_weights/'
@@ -51,30 +53,6 @@ def generate_train(patchType, personList, batchSize=256):
                     yield (
                     samples_train[i * batchSize:(i + 1) * batchSize], labels_train[i * batchSize:(i + 1) * batchSize])
 
-
-def generate_train_combined(patchType1, patchType2, personList, batchSize=256):
-    while True:
-        for index in personList:
-            for index2 in range(1, 5):
-                with open(patches + "patches_" + patchType1 + "_train_0{}_0{}.lst".format(index, index2),'rb') as fp1, \
-                 open(patches + "patches_" + patchType2 + "_train_0{}_0{}.lst".format(index, index2), 'rb') as fp2, \
-                        open(patches + "labels_train_0{}_0{}.lst".format(index, index2), 'rb') as fp3:
-                    samples1_train = np.array(pickle.load(fp1))
-                    samples2_train = np.array(pickle.load(fp2))
-                    labels_train = np.array(pickle.load(fp3))
-
-                samples1_train = np.expand_dims(samples1_train, 1)
-                samples2_train = np.expand_dims(samples2_train, 1)
-                labels_train = np.expand_dims(labels_train, 1)
-                k = samples1_train.shape[0] / batchSize
-
-                # divide batches
-                for i in range(k):
-                    inputs = [samples1_train[i * batchSize:(i + 1) * batchSize],
-                              samples2_train[i * batchSize:(i + 1) * batchSize]]
-                    labels = labels_train[i * batchSize:(i + 1) * batchSize]
-                    t = (inputs, labels)
-                    yield (inputs, labels)
 
 
 def aggregate_test(personList, patchType):
@@ -134,6 +112,107 @@ def calc_dice(confusion_mat,identifier):
         2 * confusion_mat[1][1] + confusion_mat[1][0] + confusion_mat[0][1])
     logger.info("model {} dice {} is ".format(identifier,dice))
 
+def create_callbacks(name,fold):
+    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_acc',
+                                   save_best_only=True,
+                                   save_weights_only=True)
+    stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=1, mode='auto')
+    stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5, verbose=1, mode='auto')
+    print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
+    logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
+                 format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
+                        logs['val_fmeasure'])))
+    mycallbacks = [print_logs, stop_train_callback1, stop_train_callback2,save_weights]
+    return mycallbacks
+
+def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name):
+    logger.debug("training model {} fold {}".format(name,fold_num))
+    logger.debug("creating callbacks")
+    callbacks = create_callbacks(name,fold_num)
+    logger.debug("creating validation set")
+    val_set = aggregate_val(PersonValList,patch_type)
+    logger.info("training individual model")
+    train_generator = generate_train(patch_type, PersonTrainList)
+    history = model.fit_generator(train_generator, samples_per_epoch=1000, nb_epoch=5, callbacks=callbacks,
+                                      validation_data=val_set)
+    confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
+    calc_dice(confusion_mat, "individual val {}".format(fold_num))
+    return history
+
+def test(model,patch_type,testList):
+    # ######## test individual predictors
+    logger.info("testing individual models")
+    test_samples, test_labels = aggregate_test(testList, patch_type)
+    results = model.evaluate(test_samples, test_labels)
+    #predictions = model.predict(test_samples)
+    logger.info("predictor loss {} acc {}".format(results[0], results[1]))
+    confusion_mat = calc_confusion_mat(model, test_samples, test_labels, "individual test ")
+    calc_dice(confusion_mat, "individual test ")
+
+def plot_training(logs):
+    metrics = ['acc', 'val_acc', 'loss', 'val_loss', 'fmeasure', 'val_fmeasure']
+    linestyles = ['-', '--', '-.', ':']
+    for j,history in enumerate(logs):
+        for i in [0,2,4]:
+            params = {'figure_name': metrics[i], 'y':history.history[metrics[i]],'title':'model ' + metrics[i],
+                      'ylabel':metrics[i],'xlabel':'epoch',"line_att":dict(linestyle=linestyles[j])}
+            generic_plot(params)
+            params = {'figure_name': metrics[i], 'y':history.history[metrics[i+1]],"line_att":dict(linestyle=linestyles[j])}
+            generic_plot(params)
+    for i in [0, 2, 4]:
+        params = {'figure_name': metrics[i], 'legend': ['train', 'validation']*len(logs),
+                  'save_file': run_dir + 'model_' + metrics[i] + '.png'}
+        generic_plot(params)
+
+
+def generic_plot(kwargs):
+    import matplotlib
+    matplotlib.use('Agg')
+    # import pylab as plt
+    import matplotlib.pyplot as plt
+    if kwargs.has_key("figure_name"):
+        f1 = plt.figure(kwargs["figure_name"])
+    if kwargs.has_key("title"):
+        plt.title(kwargs["title"])
+    if kwargs.has_key("ylabel"):
+        plt.ylabel(kwargs["ylabel"])
+    if kwargs.has_key("xlabel"):
+        plt.xlabel(kwargs["xlabel"])
+    if kwargs.has_key("line_att"):
+        line_attribute = kwargs["line_att"]
+    else:
+        line_attribute = ''
+    if kwargs.has_key("x"):
+        plt.plot(kwargs["x"],kwargs["y"],**line_attribute)
+    elif  kwargs.has_key("y"):
+        plt.plot(kwargs["y"],**line_attribute)
+    if kwargs.has_key("legend"):
+        plt.legend(kwargs["legend"], loc='upper left')
+    if kwargs.has_key("save_file"):
+        plt.savefig(kwargs["save_file"])
+
+def probability_plot(model, vol):
+    prob_plot = np.zeros(vol.shape)
+    import itertools
+    from scipy.interpolate import RegularGridInterpolator
+    from prepro_pipeline import extract_axial, sz, w
+    import matplotlib
+    import matplotlib.pylab as plt
+    x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
+    y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
+    z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
+    interp3 = RegularGridInterpolator((z, y, x), vol)
+    voxel_list = itertools.product([100]*181, range(vol.shape[1]), range(vol.shape[2]))
+    for i, j, k in voxel_list:
+        axial_p = extract_axial(interp3, k, j, i, sz, w)
+        if type(axial_p) == np.ndarray:
+            sample_test = np.expand_dims(axial_p, 0)
+            sample_test = np.expand_dims(sample_test, 0)
+            prob_plot[i, j, k] = model.predict(sample_test, batch_size=1)
+
+    plt.imshow(vol[100, :, :], cmap=matplotlib.cm.gray)
+    plt.imshow(prob_plot[100, :, :], cmap=matplotlib.cm.gray)
+
 # create run folder
 time = datetime.now().strftime('%d_%m_%Y_%H_%M')
 run_dir = runs_dir+time + '/'
@@ -142,71 +221,27 @@ if not path.exists(run_dir):
 # create logger
 logger = get_logger(run_dir)
 
-# ######## create callbacks
+# ######## train model
 
-logger.info("creating callbacks")
-stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=1, mode='auto')
-stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5, verbose=1, mode='auto')
-print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
-logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
-             format(epoch, logs['loss'], logs['acc'],logs['fmeasure'], logs['val_loss'], logs['val_acc'],logs['val_fmeasure'])))
+logger.info("creating model")
+predictor = one_predictor_model()
+predictor.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
 
-mycallbacks = [print_logs,stop_train_callback1, stop_train_callback2]
-predictors = []
-logger.info("creating models")
-for i in range(1):
-    predictors.append(one_predictor_model(index=i))
-    predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
+# person_indices =np.array([1,2,3,4])
+# kf = KFold(n_splits=4)
+# runs = []
+# for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
+#     print("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
+#     history = train(predictor,person_indices[train_index],person_indices[val_index], "axial", i, name=0)
+#     runs.append(history)
+# plot_training(runs)
 
-PersonTrainList = [1,2,3]
-PersonValList = [4]
-val_axial_set,val_axial_labels = aggregate_val(PersonValList,"axial")
-val_coronal_set,val_coronal_labels = aggregate_val(PersonValList,"coronal")
-val_sets = [(val_axial_set,val_axial_labels),(val_coronal_set,val_coronal_labels)]
-combined_val = ([val_axial_set,val_coronal_set],val_coronal_labels)
-######## train individual predictors
-logger.info("training individual models")
-axial_generator = generate_train("axial", PersonTrainList)
-coronal_generator = generate_train("coronal", PersonTrainList)
-train_generator = [axial_generator, coronal_generator]
+# test model
 
-for i in range(1):
-    logger.debug("training individual model {}".format(i))
-    history = predictors[i].fit_generator(train_generator[i], samples_per_epoch=340000, nb_epoch=50, callbacks=mycallbacks,
-                                 nb_worker=4, validation_data=val_sets[i])
-    predictors[i].save_weights(run_dir +'%d.h5' % (i))
-# ######## test individual predictors
-logger.info("testing individual models")
+Src_Path = r"./train/"
+Data_Path = r"data/"
+FLAIR_filename = Src_Path+Data_Path+"Person01_Time01_FLAIR.npy"
+vol = np.load(FLAIR_filename)
+probability_plot(predictor,vol)
 
-test_axial_samples, test_axial_labels = aggregate_test([5], "axial")
-test_coronal_samples, test_coronal_labels = aggregate_test([5], "coronal")
 
-test_samples = [test_axial_samples, test_coronal_samples]
-test_labels = [test_axial_labels, test_coronal_labels]
-
-results = []
-predictions = []
-
-for i in range(1):
-    results.append(predictors[i].evaluate(test_samples[i], test_labels[i]))
-    predictions.append(predictors[i].predict(test_samples[i]))
-    logger.info("predictor {} loss {} acc {}".format(i, results[i][0], results[i][1]))
-    confusion_mat = calc_confusion_mat(predictors[i], val_sets[i][0], val_sets[i][1], "individual val {}".format(i))
-    calc_dice(confusion_mat, "individual val {}".format(i))
-    confusion_mat = calc_confusion_mat(predictors[i], test_samples[i], test_labels[i], "individual test {}".format(i))
-    calc_dice(confusion_mat, "individual test {}".format(i))
-
-metrics = ['acc','val_acc','loss','val_loss','fmeasure','val_fmeasure']
-#import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('Agg')
-import pylab as plt
-for i in [0,2,4]:
-    plt.clf()
-    plt.plot(history.history[metrics[i]])
-    plt.plot(history.history[metrics[i+1]])
-    plt.title('model ' + metrics[i])
-    plt.ylabel(metrics[i])
-    plt.xlabel('epoch')
-    plt.legend(['train', 'validation'], loc='upper left')
-    plt.savefig(run_dir+'model_' + metrics[i]+'.png')
