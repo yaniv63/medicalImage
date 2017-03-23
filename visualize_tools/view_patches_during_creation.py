@@ -178,20 +178,20 @@ for index in range(1, 6):
             if candidate_mask[i][j][k] == True:
                 axial_p = extract_axial(interp3, k, j, i, sz, w)
                 coronal_p = extract_coronal(interp3, k, j, i, sz, w)
-                if i > 155 or i < 10:
-                    plt.figure()
-                    plt.imshow(axial_p, cmap=matplotlib.cm.gray)
-                    plt.title('location z {} y {} x {} label {}'.format(i,j,k,labels[i][j][k]))
-                    plt.figure()
-                    plt.imshow(vol[i,:,:], cmap=matplotlib.cm.gray)
-                    plt.show()
-                if j > 195 or j < 10:
-                    plt.figure()
-                    plt.imshow(coronal_p, cmap=matplotlib.cm.gray)
-                    plt.figure()
-                    plt.imshow(vol[:, j, :], cmap=matplotlib.cm.gray)
-                    plt.title('location z {} y {} x {} label {}'.format(i,j,k,labels[i][j][k]))
-                    plt.show()
+                # if i > 155 or i < 10:
+                #     plt.figure()
+                #     plt.imshow(axial_p, cmap=matplotlib.cm.gray)
+                #     plt.title('location z {} y {} x {} label {}'.format(i,j,k,labels[i][j][k]))
+                #     plt.figure()
+                #     plt.imshow(vol[i,:,:], cmap=matplotlib.cm.gray)
+                #     plt.show()
+                # if j > 195 or j < 10:
+                #     plt.figure()
+                #     plt.imshow(coronal_p, cmap=matplotlib.cm.gray)
+                #     plt.figure()
+                #     plt.imshow(vol[:, j, :], cmap=matplotlib.cm.gray)
+                #     plt.title('location z {} y {} x {} label {}'.format(i,j,k,labels[i][j][k]))
+                #     plt.show()
                 if type(axial_p) == np.ndarray and type(coronal_p) == np.ndarray:  # not NULL
                     patches_axial.append(axial_p)
                     patches_coronal.append(coronal_p)
