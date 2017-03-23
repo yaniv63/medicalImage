@@ -203,13 +203,18 @@ def probability_plot(model, vol):
     z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
     interp3 = RegularGridInterpolator((z, y, x), vol)
     voxel_list = itertools.product([100]*181, range(vol.shape[1]), range(vol.shape[2]))
+    patches_list = []
     for i, j, k in voxel_list:
         axial_p = extract_axial(interp3, k, j, i, sz, w)
         if type(axial_p) == np.ndarray:
-            sample_test = np.expand_dims(axial_p, 0)
-            sample_test = np.expand_dims(sample_test, 0)
-            prob_plot[i, j, k] = model.predict(sample_test, batch_size=1)
+            patches_list.append((i,j,k,axial_p))
 
+    patches = [v[3] for v in patches_list]
+    patches = np.expand_dims(patches, 1)
+
+    predictions = model.predict(patches)
+    for index,(i, j, k,_) in enumerate(voxel_list):
+        prob_plot[i,j,k] = predictions[index]
     plt.imshow(vol[100, :, :], cmap=matplotlib.cm.gray)
     plt.imshow(prob_plot[100, :, :], cmap=matplotlib.cm.gray)
 
