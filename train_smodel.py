@@ -202,21 +202,24 @@ def probability_plot(model, vol):
     y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
     z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
     interp3 = RegularGridInterpolator((z, y, x), vol)
-    voxel_list = itertools.product([100]*181, range(vol.shape[1]), range(vol.shape[2]))
+    voxel_list = itertools.product(y,x)
     patches_list = []
-    for i, j, k in voxel_list:
+    i=100
+    logger.info("patches for model")
+    for j, k in voxel_list:
         axial_p = extract_axial(interp3, k, j, i, sz, w)
         if type(axial_p) == np.ndarray:
             patches_list.append((i,j,k,axial_p))
 
     patches = [v[3] for v in patches_list]
     patches = np.expand_dims(patches, 1)
+    logger.info("predict model")
 
     predictions = model.predict(patches)
-    for index,(i, j, k,_) in enumerate(voxel_list):
-        prob_plot[i,j,k] = predictions[index]
-    plt.imshow(vol[100, :, :], cmap=matplotlib.cm.gray)
+    for index,(i, j, k,_) in enumerate(patches_list):
+        prob_plot[i, j, k] = predictions[index]*255
     plt.imshow(prob_plot[100, :, :], cmap=matplotlib.cm.gray)
+    plt.savefig(run_dir +'slice_prob' + '.png')
 
 # create run folder
 time = datetime.now().strftime('%d_%m_%Y_%H_%M')
