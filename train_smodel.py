@@ -231,7 +231,8 @@ def probability_plot(model, vol):
     predictions = model.predict(patches)
     for index,(i, j, k,_) in enumerate(patches_list):
         prob_plot[i, j, k] = predictions[index]*255
-    plt.imshow(prob_plot[100, :, :], cmap=matplotlib.cm.gray)
+    plt.clf()
+    plt.imshow(prob_plot[i, :, :], cmap=matplotlib.cm.gray)
     plt.savefig(run_dir +'slice_prob' + '.png')
 
 # create run folder
@@ -244,16 +245,16 @@ logger = get_logger(run_dir)
 
 # ######## train model
 
-logger.info("creating model")
-predictor = one_predictor_model()
-predictor.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
 
 person_indices =np.array([1,2,3,4])
 kf = KFold(n_splits=4)
 runs = []
+predictors = []
 for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
     print("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
-    history = train(predictor,person_indices[train_index],person_indices[val_index], "axial", i, name=0)
+    predictors.append(one_predictor_model())
+    predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    history = train(predictors[i],person_indices[train_index],person_indices[val_index], "axial", i, name=i)
     runs.append(history)
 plot_training(runs)
 
@@ -261,8 +262,8 @@ plot_training(runs)
 
 Src_Path = r"./train/"
 Data_Path = r"data/"
-FLAIR_filename = Src_Path+Data_Path+"Person01_Time01_FLAIR.npy"
+FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
 vol = np.load(FLAIR_filename)
-probability_plot(predictor,vol)
+probability_plot(predictors[0],vol)
 
 
