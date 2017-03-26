@@ -33,6 +33,15 @@ weight_path = r'./trained_weights/'
 patches = r'./patches/'
 runs_dir = r'./runs/'
 
+def extract_axial(vol,xc, yc, zc, sz, w):
+    try:
+        x = np.arange(xc - w, xc + w , 1)
+        y = np.arange(yc - w, yc + w , 1)
+        indexes = np.ix_(y, x)
+        patch = vol[zc][indexes]
+        return  patch
+    except IndexError as e:
+        return 0
 
 def generate_train(patchType, personList, batchSize=256):
     while True:
@@ -198,8 +207,8 @@ def generic_plot(kwargs):
 def probability_plot(model, vol):
     import itertools
     from scipy.interpolate import RegularGridInterpolator
-    from prepro_pipeline import extract_axial, sz, w
-    
+    from prepro_pipeline import  sz, w
+
     prob_plot = np.zeros(vol.shape)
     x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
     y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
@@ -210,11 +219,12 @@ def probability_plot(model, vol):
     i=100
     logger.info("patches for model")
     for j, k in voxel_list:
-        axial_p = extract_axial(interp3, k, j, i, sz, w)
+        axial_p = extract_axial(vol, k, j, i, sz, w)
         if type(axial_p) == np.ndarray:
             patches_list.append((i,j,k,axial_p))
 
     patches = [v[3] for v in patches_list]
+
     patches = np.expand_dims(patches, 1)
     logger.info("predict model")
 
