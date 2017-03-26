@@ -14,6 +14,10 @@ Created on Mon Dec 26 16:42:11 2016
 @author: yaniv
 """
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 from os import path, makedirs
 from datetime import datetime
 from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
@@ -168,7 +172,7 @@ def plot_training(logs):
 def generic_plot(kwargs):
     import matplotlib
     matplotlib.use('Agg')
-    # import pylab as plt
+    #import pylab as plt
     import matplotlib.pyplot as plt
     if kwargs.has_key("figure_name"):
         f1 = plt.figure(kwargs["figure_name"])
@@ -192,12 +196,11 @@ def generic_plot(kwargs):
         plt.savefig(kwargs["save_file"])
 
 def probability_plot(model, vol):
-    prob_plot = np.zeros(vol.shape)
     import itertools
     from scipy.interpolate import RegularGridInterpolator
     from prepro_pipeline import extract_axial, sz, w
-    import matplotlib
-    import matplotlib.pylab as plt
+    
+    prob_plot = np.zeros(vol.shape)
     x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
     y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
     z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
@@ -235,14 +238,14 @@ logger.info("creating model")
 predictor = one_predictor_model()
 predictor.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy','fmeasure'])
 
-# person_indices =np.array([1,2,3,4])
-# kf = KFold(n_splits=4)
-# runs = []
-# for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-#     print("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
-#     history = train(predictor,person_indices[train_index],person_indices[val_index], "axial", i, name=0)
-#     runs.append(history)
-# plot_training(runs)
+person_indices =np.array([1,2,3,4])
+kf = KFold(n_splits=4)
+runs = []
+for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
+    print("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
+    history = train(predictor,person_indices[train_index],person_indices[val_index], "axial", i, name=0)
+    runs.append(history)
+plot_training(runs)
 
 # test model
 
