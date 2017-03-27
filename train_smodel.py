@@ -156,7 +156,7 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
     val_size = calc_epoch_size(pos_val_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=5, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=80, callbacks=callbacks,
                                       validation_data=val_generator,nb_val_samples=val_size)
     #confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     #calc_dice(confusion_mat, "individual val {}".format(fold_num))
@@ -172,20 +172,35 @@ def test(model,patch_type,testList):
     confusion_mat = calc_confusion_mat(model, test_samples, test_labels, "individual test ")
     calc_dice(confusion_mat, "individual test ")
 
-def plot_training(logs):
-    metrics = ['acc', 'val_acc', 'loss', 'val_loss', 'fmeasure', 'val_fmeasure']
-    linestyles = ['-', '--', '-.', ':']
-    for j,history in enumerate(logs):
-        for i in [0,2,4]:
-            params = {'figure_name': metrics[i], 'y':history.history[metrics[i]],'title':'model ' + metrics[i],
-                      'ylabel':metrics[i],'xlabel':'epoch',"line_att":dict(linestyle=linestyles[j])}
-            generic_plot(params)
-            params = {'figure_name': metrics[i], 'y':history.history[metrics[i+1]],"line_att":dict(linestyle=linestyles[j])}
-            generic_plot(params)
-    for i in [0, 2, 4]:
-        params = {'figure_name': metrics[i], 'legend': ['train', 'validation']*len(logs),
-                  'save_file': run_dir + 'model_' + metrics[i] + '.png'}
-        generic_plot(params)
+def probability_plot(model, vol,fold):
+    import itertools
+    from scipy.interpolate import RegularGridInterpolator
+
+    prob_plot = np.zeros(vol.shape)
+    x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
+    y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
+    z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
+    voxel_list = itertools.product(y,x)
+    patches_list = []
+    i=110
+    logger.info("patches for model")
+    for j, k in voxel_list:
+        axial_p = extract_axial(vol, k, j, i,16)
+        if type(axial_p) == np.ndarray:
+            patches_list.append((i,j,k,axial_p))
+
+    patches = [v[3] for v in patches_list]
+
+    patches = np.expand_dims(patches, 1)
+    logger.info("predict model")
+
+    predictions = model.predict(patches)
+    for index,(i, j, k,_) in enumerate(patches_list):
+        prob_plot[i, j, k] = predictions[index]*255
+    plt.clf()
+    plt.imshow(prob_plot[i, :, :], cmap=matplotlib.cm.gray)
+    plt.savefig(run_dir +'slice_prob_{}'.format(fold) + '.png')
+
 
 
 def generic_plot(kwargs):
@@ -193,6 +208,8 @@ def generic_plot(kwargs):
     matplotlib.use('Agg')
     #import pylab as plt
     import matplotlib.pyplot as plt
+    from pylab import rcParams
+    rcParams['figure.figsize'] = 10, 10
     if kwargs.has_key("figure_name"):
         f1 = plt.figure(kwargs["figure_name"])
     if kwargs.has_key("title"):
@@ -210,39 +227,25 @@ def generic_plot(kwargs):
     elif  kwargs.has_key("y"):
         plt.plot(kwargs["y"],**line_attribute)
     if kwargs.has_key("legend"):
-        plt.legend(kwargs["legend"], loc='upper left')
+        plt.legend(kwargs["legend"], loc=0)
     if kwargs.has_key("save_file"):
-        plt.savefig(kwargs["save_file"])
+        plt.savefig(kwargs["save_file"],dpi=100)
 
-def probability_plot(model, vol):
-    import itertools
-    from scipy.interpolate import RegularGridInterpolator
-
-    prob_plot = np.zeros(vol.shape)
-    x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
-    y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
-    z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
-    interp3 = RegularGridInterpolator((z, y, x), vol)
-    voxel_list = itertools.product(y,x)
-    patches_list = []
-    i=100
-    logger.info("patches for model")
-    for j, k in voxel_list:
-        axial_p = extract_axial(vol, k, j, i,16)
-        if type(axial_p) == np.ndarray:
-            patches_list.append((i,j,k,axial_p))
-
-    patches = [v[3] for v in patches_list]
-
-    patches = np.expand_dims(patches, 1)
-    logger.info("predict model")
-
-    predictions = model.predict(patches)
-    for index,(i, j, k,_) in enumerate(patches_list):
-        prob_plot[i, j, k] = predictions[index]*255
-    plt.clf()
-    plt.imshow(prob_plot[i, :, :], cmap=matplotlib.cm.gray)
-    plt.savefig(run_dir +'slice_prob' + '.png')
+def plot_training(logs):
+    metrics = ['acc', 'val_acc', 'loss', 'val_loss', 'fmeasure', 'val_fmeasure']
+    linestyles = ['-', '--']
+    colors = ['b','y','r','g']
+    for j,history in enumerate(logs):
+        for i in [0,2,4]:
+            params = {'figure_name': metrics[i], 'y':history[metrics[i]],'title':'model ' + metrics[i],
+                      'ylabel':metrics[i],'xlabel':'epoch',"line_att":dict(linestyle=linestyles[0],color=colors[j])}
+            generic_plot(params)
+            params = {'figure_name': metrics[i], 'y':history[metrics[i+1]],"line_att":dict(linestyle=linestyles[1],color=colors[j])}
+            generic_plot(params)
+    for i in [0, 2, 4]:
+        params = {'figure_name': metrics[i], 'legend': ['train', 'validation']*len(logs),
+                  'save_file': run_dir + 'model_' + metrics[i] + '.png'}
+        generic_plot(params)
 
 # create run folder
 time = datetime.now().strftime('%d_%m_%Y_%H_%M')
@@ -264,13 +267,21 @@ for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
     predictors.append(one_predictor_model())
     predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train(predictors[i],person_indices[train_index],person_indices[val_index], "axial", i, name=i)
-    runs.append(history)
+    runs.append(history.history)
+
+with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
+        pickle.dump(runs, fp)
 plot_training(runs)
+
+
+# with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
+#         runs = pickle.load(fp)
 
 # test model
 
 FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
 vol = np.load(FLAIR_filename)
-probability_plot(predictors[0],vol)
+for i in range(4):
+    probability_plot(predictors[i],vol,i)
 
 
