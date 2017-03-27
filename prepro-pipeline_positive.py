@@ -14,6 +14,8 @@ import itertools
 import nibabel as nb
 import scipy.misc
 from collections import defaultdict
+from sklearn.model_selection import KFold
+
 
 from logging_tools import  get_logger
 
@@ -74,23 +76,14 @@ z = 70
 
 from scipy.interpolate import RegularGridInterpolator
 
-def extract_axial(interp3, xc, yc, zc, sz, w):
-    x = np.arange(xc-w+0.5, xc+w+0.5, 1)
-    y = np.arange(yc+w+0.5, yc-w+0.5, -1)
-
-    # axial patch voxels
-    xx, yy = np.meshgrid(x, y)
-    xx = xx.reshape((xx.shape[0]*xx.shape[1],1))
-    yy = yy.reshape((yy.shape[0]*yy.shape[1],1))
-    zz = zc*np.ones(xx.shape)
-    pts = np.concatenate((zz,yy,xx),axis=1)
-
-    # interpolate
+def extract_axial(vol,xc, yc, zc, w):
     try:
-        p_axial = interp3(pts)
-        p_axial = p_axial.reshape((sz,sz))
-        return p_axial
-    except ValueError as e:
+        x = np.arange(xc - w, xc + w , 1)
+        y = np.arange(yc - w, yc + w , 1)
+        indexes = np.ix_(y, x)
+        patch = vol[zc][indexes]
+        return  patch
+    except IndexError as e:
         return 0
 
 
@@ -141,8 +134,9 @@ logger = get_logger()
 # In[6]:
 
 # load volume
-def create_positive_list(person_list):
+def create_patches_list(person_list):
     positive_list = []
+    neg_candidate_list = []
     for index in person_list:
         for index2 in range(1,5):
             logger.info("person {} time {} creating patches".format(index,index2))
@@ -170,27 +164,25 @@ def create_positive_list(person_list):
             for i,j,k in voxel_list:
                 if candidate_mask[i][j][k] and labels[i][j][k] == 1:
                     positive_list.append((index,index2,i,j,k))
+                elif candidate_mask[i][j][k]:
+                    neg_candidate_list.append((index,index2,i,j,k))
+
 
 
     import pickle
-    with open(Output_Path+"positive_list_person_{}.lst".format(str(person_list)), 'wb') as fp1:
+    with open(Output_Path+"positive_list_person_{}.lst".format(str(person_list)), 'wb') as fp1,\
+        open(Output_Path + "negative_list_person_{}.lst".format(str(person_list)), 'wb') as fp2:
                 pickle.dump(positive_list, fp1)
+                pickle.dump(neg_candidate_list, fp2)
                 logger.info("person {} finished patches and saved".format(index))
 
-
-
-person_list = [1,2,3]
-from sklearn.model_selection import KFold
-kf = KFold(4, n_folds=4)
-for train_index, test_index in kf:
-    print("TRAIN:", train_index, "TEST:", test_index)
-
-
-def load_positive_list(person_list):
+def load_patches_list(person_list):
     import pickle
-    with open(Output_Path + "positive_list_person_{}.lst".format(str(person_list)), 'rb') as fp1:
+    with open(Output_Path + "positive_list_person_{}.lst".format(str(person_list)), 'rb') as fp1, \
+            open(Output_Path + "negative_list_person_{}.lst".format(str(person_list)), 'rb') as fp2:
             positive_list_np = np.array(pickle.load(fp1))
-    return positive_list_np
+            negative_list_np = np.array(pickle.load(fp2))
+    return positive_list_np,negative_list_np
 
 #
 def load_data(person_list):
@@ -200,26 +192,44 @@ def load_data(person_list):
             image_list[person][time] = np.load(Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(person,time))
     return image_list
 
-def list_generator(positive_list,batch_size=256):
-    batch_num = len(positive_list) / batch_size
-    while True:
-        # modify list to divide by batch_size
-        positive_list_np = np.random.permutation(positive_list)
-        positive_list_np = positive_list_np[:batch_num * batch_size]
-        for i in range(batch_num):
-            positive_batch = positive_list_np[i * batch_size:(i + 1) * batch_size]
 
-
-def generator(positive_list,data,batch_size=256):
-    batch_num = len(positive_list)/batch_size
+def generator(positive_list,negative_list,data,batch_size=256):
+    batch_pos = batch_size/2
+    batch_num = len(positive_list)/batch_pos
     while True:
         #modify list to divide by batch_size
         positive_list_np = np.random.permutation(positive_list)
-        positive_list_np = positive_list_np[:batch_num*batch_size]
-        for i in range(batch_num):
-            positive_batch = positive_list_np[i*batch_size:(i+1)*batch_size]
+        positive_list_np = positive_list_np[:batch_num*batch_pos]
+        negative_list_np = np.random.permutation(negative_list)
+        for batch in range(batch_num):
+            positive_batch = positive_list_np[batch*batch_pos:(batch+1)*batch_pos]
+            positive_batch_patches = [[extract_axial(data[person][time],k,j,i,w),1] for person,time,i,j,k in positive_batch]
+            negative_batch = negative_list_np[batch * batch_pos:(batch + 1) * batch_pos]
+            negative_batch_patches = [[extract_axial(data[person][time], k, j, i,w),0] for person, time, i, j, k in
+                                      negative_batch]
+            final_batch = np.random.permutation(positive_batch_patches + negative_batch_patches)
+            samples =  [patches for patches,_ in final_batch]
+            labels = [labels for _,labels in final_batch]
+            yield (samples,labels)
 
 
-p = load_data(person_list)
-a = load_positive_list(person_list)
-print 3
+if __name__ == "__main__":
+    # person_indices = np.array([1, 2, 3, 4])
+    # kf = KFold(n_splits=4)
+    # for train_index, val_index in kf.split(person_indices):
+    #     print("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
+    #     create_patches_list(person_indices[train_index])
+    #     create_patches_list(person_indices[val_index])
+
+    p = load_data([1])
+    pos,neg = load_patches_list([1])
+    b = generator(pos,neg,p)
+    d  = b.next()
+    import matplotlib
+    import matplotlib.pyplot as plt
+
+    for i in range(10):
+        plt.figure()
+        plt.title("label {}".format(d[1][i]))
+        plt.imshow(d[0][i],cmap=matplotlib.cm.gray)
+    plt.show()

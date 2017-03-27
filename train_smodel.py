@@ -24,6 +24,7 @@ from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
 import pickle
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold
+from collections import defaultdict
 
 
 from two_predictors_combined import one_predictor_model
@@ -32,8 +33,10 @@ from logging_tools import get_logger
 weight_path = r'./trained_weights/'
 patches = r'./patches/'
 runs_dir = r'./runs/'
+Src_Path = r"./train/"
+Data_Path = r"data/"
 
-def extract_axial(vol,xc, yc, zc, sz, w):
+def extract_axial(vol,xc, yc, zc, w):
     try:
         x = np.arange(xc - w, xc + w , 1)
         y = np.arange(yc - w, yc + w , 1)
@@ -43,30 +46,52 @@ def extract_axial(vol,xc, yc, zc, sz, w):
     except IndexError as e:
         return 0
 
-def generate_train(patchType, personList, batchSize=256):
+def load_patches_list(person_list):
+    import pickle
+    with open(patches + "positive_list_person_{}.lst".format(str(person_list)), 'rb') as fp1, \
+            open(patches + "negative_list_person_{}.lst".format(str(person_list)), 'rb') as fp2:
+            positive_list_np = np.array(pickle.load(fp1))
+            negative_list_np = np.array(pickle.load(fp2))
+    return positive_list_np,negative_list_np
+
+#
+def load_images(person_list):
+    image_list =defaultdict(dict)
+    for person in person_list:
+        for time in range(1,5):
+            image_list[person][time] = np.load(Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(person,time))
+    return image_list
+
+def load_data(person_list):
+    pos_list,neg_list = load_patches_list(person_list)
+    images = load_images(person_list)
+    return images,pos_list,neg_list
+
+def generator(positive_list,negative_list,data,batch_size=256,patch_width = 16):
+    batch_pos = batch_size/2
+    batch_num = len(positive_list)/batch_pos
     while True:
-        for index in personList:
-            for index2 in range(1, 5):
-                with open(patches + "patches_"+patchType+ "_train_0{}_0{}.lst".format(index, index2), 'rb') as fp1, open(
-                            patches + "labels_train_0{}_0{}.lst".format(index, index2), 'rb') as fp2:
-                    samples_train = np.array(pickle.load(fp1))
-                    labels_train = np.array(pickle.load(fp2))
+        #modify list to divide by batch_size
+        positive_list_np = np.random.permutation(positive_list)
+        positive_list_np = positive_list_np[:batch_num*batch_pos]
+        negative_list_np = np.random.permutation(negative_list)
+        for batch in range(batch_num):
+            positive_batch = positive_list_np[batch*batch_pos:(batch+1)*batch_pos]
+            positive_batch_patches = [[extract_axial(data[person][time],k,j,i,patch_width),1] for person,time,i,j,k in positive_batch]
+            negative_batch = negative_list_np[batch * batch_pos:(batch + 1) * batch_pos]
+            negative_batch_patches = [[extract_axial(data[person][time], k, j, i,patch_width),0] for person, time, i, j, k in
+                                      negative_batch]
+            final_batch = np.random.permutation(positive_batch_patches + negative_batch_patches)
+            samples =  [patches for patches,_ in final_batch]
+            samples = np.expand_dims(samples, 1)
 
-                samples_train = np.expand_dims(samples_train, 1)
-                labels_train = np.expand_dims(labels_train, 1)
+            labels = [labels for _,labels in final_batch]
+            yield (samples,labels)
 
-		permute = np.random.permutation(len(samples_train))
-        	samples_train = np.array(samples_train)[permute]
-                labels_train = np.array(labels_train)[permute]
-
-                k = samples_train.shape[0] / batchSize
-
-                # divide batches
-                for i in range(k):
-                    yield (
-                    samples_train[i * batchSize:(i + 1) * batchSize], labels_train[i * batchSize:(i + 1) * batchSize])
-
-
+def calc_epoch_size(patch_list,batch_size):
+    batch_pos = batch_size / 2
+    batch_num = len(patch_list) / batch_pos
+    return batch_num * batch_pos*2
 
 def aggregate_test(personList, patchType):
     i = 1
@@ -88,29 +113,6 @@ def aggregate_test(personList, patchType):
     return (samples_test, labels_test)
 
 
-def aggregate_val(personList, patchType):
-    i = 1
-    for index in personList:
-        for index2 in range(1, 5):
-            with open(patches + "patches_"+patchType+ "_val_0{}_0{}.lst".format(index, index2), 'rb') as fp1, open(
-                            patches + "labels__val_0{}_0{}.lst".format(index, index2), 'rb') as fp2:
-                if i == 1:
-                    samples_val = pickle.load(fp1)
-                    labels_val = pickle.load(fp2)
-                    i = 2
-                else:
-                    t1 = pickle.load(fp1)
-                    t2 = pickle.load(fp2)
-                    samples_val = np.append(samples_val, t1, axis=0)
-                    labels_val = np.append(labels_val, t2, axis=0)
-
-    samples_val = np.array(samples_val)
-    labels_val = np.array(labels_val)
-
-    samples_val = np.expand_dims(samples_val, 1)
-    labels_val = np.expand_dims(labels_val, 1)
-
-    return (samples_val, labels_val)
 
 
 def calc_confusion_mat(model,samples,labels,identifier=None):
@@ -138,18 +140,26 @@ def create_callbacks(name,fold):
     mycallbacks = [print_logs, stop_train_callback1, stop_train_callback2,save_weights]
     return mycallbacks
 
-def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name):
+def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_size=256):
     logger.debug("training model {} fold {}".format(name,fold_num))
     logger.debug("creating callbacks")
     callbacks = create_callbacks(name,fold_num)
-    logger.debug("creating validation set")
-    val_set = aggregate_val(PersonValList,patch_type)
+
+    logger.debug("creating train & val generators")
+
+    train_images,pos_train_list,neg_train_list = load_data(PersonTrainList)
+    train_generator = generator(pos_train_list, neg_train_list, train_images)
+
+    val_images,pos_val_list,neg_val_list = load_data(PersonValList)
+    val_generator = generator(pos_val_list, neg_val_list, val_images)
+
     logger.info("training individual model")
-    train_generator = generate_train(patch_type, PersonTrainList)
-    history = model.fit_generator(train_generator, samples_per_epoch=1000, nb_epoch=5, callbacks=callbacks,
-                                      validation_data=val_set)
-    confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
-    calc_dice(confusion_mat, "individual val {}".format(fold_num))
+    epoch_size = calc_epoch_size(pos_train_list,batch_size)
+    val_size = calc_epoch_size(pos_val_list,batch_size)
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=5, callbacks=callbacks,
+                                      validation_data=val_generator,nb_val_samples=val_size)
+    #confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
+    #calc_dice(confusion_mat, "individual val {}".format(fold_num))
     return history
 
 def test(model,patch_type,testList):
@@ -207,7 +217,6 @@ def generic_plot(kwargs):
 def probability_plot(model, vol):
     import itertools
     from scipy.interpolate import RegularGridInterpolator
-    from prepro_pipeline import  sz, w
 
     prob_plot = np.zeros(vol.shape)
     x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
@@ -219,7 +228,7 @@ def probability_plot(model, vol):
     i=100
     logger.info("patches for model")
     for j, k in voxel_list:
-        axial_p = extract_axial(vol, k, j, i, sz, w)
+        axial_p = extract_axial(vol, k, j, i,16)
         if type(axial_p) == np.ndarray:
             patches_list.append((i,j,k,axial_p))
 
@@ -260,8 +269,6 @@ plot_training(runs)
 
 # test model
 
-Src_Path = r"./train/"
-Data_Path = r"data/"
 FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
 vol = np.load(FLAIR_filename)
 probability_plot(predictors[0],vol)
