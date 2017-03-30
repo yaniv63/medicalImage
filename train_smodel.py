@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from os import path, makedirs
 from datetime import datetime
 from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
+from keras.optimizers import SGD
 import pickle
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold
@@ -147,7 +148,7 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=1, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=50, callbacks=callbacks,
                                       validation_data=val_set)
     confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
@@ -224,7 +225,7 @@ def generic_plot(kwargs):
     if kwargs.has_key("save_file"):
         plt.savefig(kwargs["save_file"],dpi=100)
 
-def plot_testing(logs):
+def plot_training(logs):
     metrics = ['acc', 'val_acc', 'loss', 'val_loss', 'fmeasure', 'val_fmeasure']
     linestyles = ['-', '--']
     colors = ['b','y','r','g']
@@ -249,22 +250,23 @@ if not path.exists(run_dir):
 logger = get_logger(run_dir)
 
 # ######## train model
-
-
+logger.info("use adadelta")
 person_indices =np.array([1,2,3,4])
 kf = KFold(n_splits=4)
 runs = []
 predictors = []
+
 for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-    logger.info("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
+    logger.info("TRAIN: {} TEST {} ".format( person_indices[train_index],person_indices[val_index]) )
     predictors.append(one_predictor_model())
+    sg = SGD(nesterov=True)
     predictors[i].compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train(predictors[i],person_indices[train_index],person_indices[val_index], "axial", i, name=i)
     runs.append(history.history)
 
 with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
         pickle.dump(runs, fp)
-# plot_training(runs)
+plot_training(runs)
 
 
 # with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
