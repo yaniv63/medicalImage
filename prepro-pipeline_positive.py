@@ -220,16 +220,16 @@ if __name__ == "__main__":
     #     print("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
     #     create_patches_list(person_indices[train_index])
     #     create_patches_list(person_indices[val_index])
-
-    p = load_data([1])
-    pos,neg = load_patches_list([1])
-    b = generator(pos,neg,p)
-    d  = b.next()
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    for i in range(10):
-        plt.figure()
-        plt.title("label {}".format(d[1][i]))
-        plt.imshow(d[0][i],cmap=matplotlib.cm.gray)
-    plt.show()
+    create_patches_list([5])
+    # p = load_data([1])
+    # pos,neg = load_patches_list([1])
+    # b = generator(pos,neg,p)
+    # d  = b.next()
+    # import matplotlib
+    # import matplotlib.pyplot as plt
+    #
+    # for i in range(10):
+    #     plt.figure()
+    #     plt.title("label {}".format(d[1][i]))
+    #     plt.imshow(d[0][i],cmap=matplotlib.cm.gray)
+    # plt.show()

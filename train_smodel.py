@@ -67,7 +67,7 @@ def load_data(person_list):
     images = load_images(person_list)
     return images,pos_list,neg_list
 
-def generator(positive_list,negative_list,data,batch_size=256,patch_width = 16):
+def generator(positive_list,negative_list,data,batch_size=256,patch_width = 16,only_once=False):
     batch_pos = batch_size/2
     batch_num = len(positive_list)/batch_pos
     while True:
@@ -87,30 +87,22 @@ def generator(positive_list,negative_list,data,batch_size=256,patch_width = 16):
 
             labels = [labels for _,labels in final_batch]
             yield (samples,labels)
+        if only_once:
+            break
 
 def calc_epoch_size(patch_list,batch_size):
     batch_pos = batch_size / 2
     batch_num = len(patch_list) / batch_pos
     return batch_num * batch_pos*2
 
-def aggregate_test(personList, patchType):
-    i = 1
-    for index in personList:
-        for index2 in range(1, 5):
-            with open(patches + "patches_"+patchType+ "_0{}_0{}.lst".format(index, index2), 'rb') as fp1, open(
-                            patches + "labels_0{}_0{}.lst".format(index, index2), 'rb') as fp2:
-                if i == 1:
-                    samples_test = pickle.load(fp1)
-                    labels_test = pickle.load(fp2)
-                    i = 2
-                else:
-                    samples_test = np.append(samples_test, pickle.load(fp1), axis=0)
-                    labels_test = np.append(labels_test, pickle.load(fp2), axis=0)
+def aggregate_genrated_samples(pos_list,neg_list,data):
+    samples = []
+    labels = []
+    for batch_samples,batch_labels in generator(pos_list,neg_list,data,only_once=True):
+        samples.extend(batch_samples)
+        labels.extend(batch_labels)
 
-    samples_test = np.expand_dims(samples_test, 1)
-    labels_test = np.expand_dims(labels_test, 1)
-
-    return (samples_test, labels_test)
+    return (np.array(samples), np.array(labels))
 
 
 
@@ -151,22 +143,23 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
     train_generator = generator(pos_train_list, neg_train_list, train_images)
 
     val_images,pos_val_list,neg_val_list = load_data(PersonValList)
-    val_generator = generator(pos_val_list, neg_val_list, val_images)
+    val_set = aggregate_genrated_samples(pos_val_list, neg_val_list, val_images)
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    val_size = calc_epoch_size(pos_val_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=80, callbacks=callbacks,
-                                      validation_data=val_generator,nb_val_samples=val_size)
-    #confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
-    #calc_dice(confusion_mat, "individual val {}".format(fold_num))
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=1, callbacks=callbacks,
+                                      validation_data=val_set)
+    confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
+    calc_dice(confusion_mat, "individual val {}".format(fold_num))
     return history
 
 def test(model,patch_type,testList):
     # ######## test individual predictors
     logger.info("testing individual models")
-    test_samples, test_labels = aggregate_test(testList, patch_type)
-    results = model.evaluate(test_samples, test_labels)
+    test_images, pos_test_list, neg_test_list = load_data(testList)
+    #test_generator = generator(pos_test_list, neg_test_list, test_images,only_once=True)
+    test_samples,test_labels = aggregate_genrated_samples(pos_test_list, neg_test_list, test_images)
+    results = model.evaluate(test_samples,test_labels)
     #predictions = model.predict(test_samples)
     logger.info("predictor loss {} acc {}".format(results[0], results[1]))
     confusion_mat = calc_confusion_mat(model, test_samples, test_labels, "individual test ")
@@ -231,7 +224,7 @@ def generic_plot(kwargs):
     if kwargs.has_key("save_file"):
         plt.savefig(kwargs["save_file"],dpi=100)
 
-def plot_training(logs):
+def plot_testing(logs):
     metrics = ['acc', 'val_acc', 'loss', 'val_loss', 'fmeasure', 'val_fmeasure']
     linestyles = ['-', '--']
     colors = ['b','y','r','g']
@@ -271,7 +264,7 @@ for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
 
 with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
         pickle.dump(runs, fp)
-plot_training(runs)
+# plot_training(runs)
 
 
 # with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
@@ -279,6 +272,7 @@ plot_training(runs)
 
 # test model
 
+test(predictors[0],"axial",[5])
 FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
 vol = np.load(FLAIR_filename)
 for i in range(4):
