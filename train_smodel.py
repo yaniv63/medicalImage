@@ -154,9 +154,9 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
     return history
 
-def test(model,patch_type,testList):
+def test(model,patch_type,testList,name):
     # ######## test individual predictors
-    logger.info("testing individual models")
+    logger.info("testing individual models {}".format(name))
     test_images, pos_test_list, neg_test_list = load_data(testList)
     #test_generator = generator(pos_test_list, neg_test_list, test_images,only_once=True)
     test_samples,test_labels = aggregate_genrated_samples(pos_test_list, neg_test_list, test_images)
@@ -261,6 +261,7 @@ for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
     predictors.append(one_predictor_model())
     sg = SGD(nesterov=True)
     predictors[i].compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    #predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
     history = train(predictors[i],person_indices[train_index],person_indices[val_index], "axial", i, name=i)
     runs.append(history.history)
 
@@ -269,15 +270,14 @@ with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
 plot_training(runs)
 
 
-# with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
-#         runs = pickle.load(fp)
+#with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
+#        runs = pickle.load(fp)
 
-# test model
-
-test(predictors[0],"axial",[5])
 FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
 vol = np.load(FLAIR_filename)
+# test model
 for i in range(4):
+    test(predictors[i],"axial",[5],i)
     probability_plot(predictors[i],vol,i)
 
 
