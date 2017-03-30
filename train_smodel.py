@@ -256,9 +256,9 @@ kf = KFold(n_splits=4)
 runs = []
 predictors = []
 for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-    print("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
+    logger.info("TRAIN:", person_indices[train_index], "TEST:", person_indices[val_index])
     predictors.append(one_predictor_model())
-    predictors[i].compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    predictors[i].compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train(predictors[i],person_indices[train_index],person_indices[val_index], "axial", i, name=i)
     runs.append(history.history)
 
