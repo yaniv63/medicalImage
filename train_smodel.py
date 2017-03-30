@@ -225,7 +225,7 @@ def generic_plot(kwargs):
     if kwargs.has_key("save_file"):
         plt.savefig(kwargs["save_file"],dpi=100)
 
-def plot_testing(logs):
+def plot_training(logs):
     metrics = ['acc', 'val_acc', 'loss', 'val_loss', 'fmeasure', 'val_fmeasure']
     linestyles = ['-', '--']
     colors = ['b','y','r','g']
@@ -266,7 +266,7 @@ for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
 
 with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
         pickle.dump(runs, fp)
-# plot_training(runs)
+plot_training(runs)
 
 
 # with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
