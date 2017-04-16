@@ -329,5 +329,6 @@ for i in range(4):
     #test(predictors[i],"axial",[5],i)
     #probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
     seg = predict_image(predictors[0],vol)
-
+    with open(run_dir + 'segmantation.lst', 'wb') as fp:
+        pickle.dump(seg, fp)
 
