@@ -210,24 +210,25 @@ def predict_image(model, vol,threshold=0.5):
     x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
     y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
     z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
-    voxel_list = itertools.product(z,y,x)
+    voxel_list = itertools.product(y,x)
     patches_list = []
     logger.info("patches for model")
-    for i ,j, k in voxel_list:
-        axial_p = extract_axial(vol, k, j, i,16)
-        if type(axial_p) == np.ndarray:
-            patches_list.append((i,j,k,axial_p))
+    for i in z:
+        for j, k in voxel_list:
+            axial_p = extract_axial(vol, k, j, i,16)
+            if type(axial_p) == np.ndarray:
+                patches_list.append((i,j,k,axial_p))
 
-    patches = [v[3] for v in patches_list]
+        patches = [v[3] for v in patches_list]
 
-    patches = np.expand_dims(patches, 1)
-    logger.info("predict model")
+        patches = np.expand_dims(patches, 1)
+        logger.info("predict model")
 
-    predictions = model.predict(patches)
-    for index,(i, j, k,_) in enumerate(patches_list):
-        if predictions[index] > threshold:
-            segmentation[i, j, k] = 1
-        prob_plot[i, j, k] = predictions[index] * 255
+        predictions = model.predict(patches)
+        for index,(i, j, k,_) in enumerate(patches_list):
+            if predictions[index] > threshold:
+                segmentation[i, j, k] = 1
+            prob_plot[i, j, k] = predictions[index] * 255
 
     return segmentation
 
