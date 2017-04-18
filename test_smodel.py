@@ -6,6 +6,8 @@ Created on Wed Dec 21 19:32:39 2016
 """
 
 # -*- coding: utf-8 -*-
+from mx.Tools.mxTools.bench1 import f1
+
 from sklearn import pipeline
 
 """
@@ -30,9 +32,10 @@ from collections import defaultdict
 
 from two_predictors_combined import one_predictor_model
 from logging_tools import get_logger
-
+import nibabel as nb
 weight_path = r'./trained_weights/'
 patches = r'./patches/'
+Labels_Path = r"seg/"
 runs_dir = r'./runs/'
 Src_Path = r"./train/"
 Data_Path = r"data/"
@@ -323,7 +326,7 @@ for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
 with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
        runs = pickle.load(fp)
 
-FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
+FLAIR_filename = Src_Path+Data_Path+"Person05_Time02_FLAIR.npy"
 vol = np.load(FLAIR_filename)
 # test model
 #for i in range(4):
@@ -332,4 +335,13 @@ vol = np.load(FLAIR_filename)
 seg = predict_image(predictors[0],vol)
 with open(run_dir + 'segmantation.npy', 'wb') as fp:
     np.save(fp,seg)
+FLAIR_labels_1 = Src_Path+Labels_Path+"training05_02_mask1.nii"
+vol = np.load(FLAIR_filename)
+labels = nb.load(FLAIR_labels_1).get_data()
+labels = labels.T
+labels = np.rot90(labels, 2, axes=(1, 2))
 
+test_labels = labels.flatten().tolist()
+test_seg = seg.flatten().tolist()
+from sklearn.metrics import accuracy_score,f1_score
+logger.info("f1 is {} , accuracy is {} ".format(f1_score(test_labels,test_seg),accuracy_score(test_labels,test_seg)))
