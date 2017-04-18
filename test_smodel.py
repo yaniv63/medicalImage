@@ -204,8 +204,8 @@ def probability_plot(model, vol,fold,threshold=0.5,slice = 95):
 def predict_image(model, vol,threshold=0.5):
     import itertools
 
-    prob_plot = np.zeros(vol.shape)
-    segmentation = np.zeros(vol.shape)
+    prob_plot = np.zeros(vol.shape,dtype='uint8')
+    segmentation = np.zeros(vol.shape,dtype='uint8')
 
     x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
     y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
@@ -326,10 +326,10 @@ with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
 FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
 vol = np.load(FLAIR_filename)
 # test model
-for i in range(4):
+#for i in range(4):
     #test(predictors[i],"axial",[5],i)
     #probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
-    seg = predict_image(predictors[0],vol)
-    with open(run_dir + 'segmantation.npy', 'wb') as fp:
-        np.save(fp,seg)
+seg = predict_image(predictors[0],vol)
+with open(run_dir + 'segmantation.npy', 'wb') as fp:
+    np.save(fp,seg)
 
