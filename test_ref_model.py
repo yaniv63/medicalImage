@@ -49,8 +49,8 @@ def multi_dimensions(n,type=None):
     return defaultdict(lambda:multi_dimensions(n-1,type))
 
 def can_extract_patch(shape,xc, yc, zc, w):
-    return (xc - w + 0.5) >= 0 and (xc + w + 0.5)<=shape[2] and (yc - w + 0.5) >= 0 and (yc + w + 0.5)<=shape[1] \
-           and (zc - w + 0.5) >= 0 and (zc + w + 0.5)<=shape[0]
+    return (xc - w + 0.5) >= 0 and (xc + w + 0.5)<=(shape[2]-1) and (yc - w + 0.5) >= 0 and (yc + w + 0.5)<=(shape[1]-1) \
+           and (zc - w + 0.5) >= 0 and (zc + w + 0.5)<=(shape[0]-1)
 
 
 def extract_axial(interp3, xc, yc, zc, sz, w):
