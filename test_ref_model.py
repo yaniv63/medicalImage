@@ -28,6 +28,8 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold
 from collections import defaultdict
 from itertools import product
+from scipy.interpolate import RegularGridInterpolator
+
 
 from MIMTP_Detection_demo import create_full_model
 from logging_tools import get_logger
@@ -47,35 +49,74 @@ def multi_dimensions(n,type=None):
     return defaultdict(lambda:multi_dimensions(n-1,type))
 
 def can_extract_patch(shape,xc, yc, zc, w):
-    return (xc-w) >= 0 and (xc+w)<=shape[2] and (yc-w) >= 0 and (yc+w)<=shape[1] and (zc-w) >= 0 and (zc+w)<=shape[0]
+    return (xc - w + 0.5) >= 0 and (xc + w + 0.5)<=shape[2] and (yc - w + 0.5) >= 0 and (yc + w + 0.5)<=shape[1] \
+           and (zc - w + 0.5) >= 0 and (zc + w + 0.5)<=shape[0]
 
 
-def extract_axial(vol,xc, yc, zc, w):
-    x = np.arange(xc - w, xc + w , 1)
-    y = np.arange(yc - w, yc + w , 1)
-    indexes = np.ix_(y,x) #choose patch indices left for rows,right for columns
-    patch = vol[zc][indexes]
-    return  patch
+def extract_axial(interp3, xc, yc, zc, sz, w):
+    x = np.arange(xc - w + 0.5, xc + w + 0.5, 1)
+    y = np.arange(yc + w + 0.5, yc - w + 0.5, -1)
 
-def extract_coronal(vol, xc, yc, zc, w):
-    x = np.arange(xc - w, xc + w , 1)
-    z = np.arange(zc - w, zc + w , 1)
-    indexes = np.ix_(z, x)
-    patch = vol[:,yc,:][indexes]
-    return  patch
+    # axial patch voxels
+    xx, yy = np.meshgrid(x, y)
+    xx = xx.reshape((xx.shape[0] * xx.shape[1], 1))
+    yy = yy.reshape((yy.shape[0] * yy.shape[1], 1))
+    zz = zc * np.ones(xx.shape)
+    pts = np.concatenate((zz, yy, xx), axis=1)
+
+    # interpolate
+    p_axial = interp3(pts)
+    p_axial = p_axial.reshape((sz, sz))
+    p_axial = np.flipud(p_axial)
+    return p_axial
 
 
-def extract_sagittal(vol, xc, yc, zc, w):
-    y = np.arange(yc - w, yc + w , 1)
-    z = np.arange(zc - w, zc + w , 1)
-    indexes = np.ix_(z, y)
-    patch = vol[:,:,xc][indexes]
-    return  patch
+# In[30]:
 
-def extract_patch(contrast,vol,person,time,view,voxel,w):
+def extract_coronal(interp3, xc, yc, zc, sz, w):
+    x = np.arange(xc - w + 0.5, xc + w + 0.5, 1)
+    z = np.arange(zc - w + 0.5, zc + w + 0.5, 1)
+
+    # coronal patch voxels
+    xx, zz = np.meshgrid(x, z)
+    xx = xx.reshape((xx.shape[0] * xx.shape[1], 1))
+    zz = zz.reshape((zz.shape[0] * zz.shape[1], 1))
+    yy = yc * np.ones(xx.shape)
+    pts = np.concatenate((zz, yy, xx), axis=1)
+
+    # interpolate
+    p_coronal = interp3(pts)
+    p_coronal = p_coronal.reshape((sz, sz))
+
+    return p_coronal
+
+
+# In[31]:
+
+def extract_sagittal(interp3, xc, yc, zc, sz, w):
+    y = np.arange(yc + w + 0.5, yc - w + 0.5, -1)
+    z = np.arange(zc + w + 0.5, zc - w + 0.5, -1)
+
+    # sagittal patch voxels
+    zz, yy = np.meshgrid(z, y)
+    yy = yy.reshape((yy.shape[0] * yy.shape[1], 1))
+    zz = zz.reshape((zz.shape[0] * zz.shape[1], 1))
+    xx = xc * np.ones(yy.shape)
+    pts = np.concatenate((zz, yy, xx), axis=1)
+
+    # interpolate
+    p_sagittal = interp3(pts)
+    p_sagittal = p_sagittal.reshape((sz, sz))
+    p_sagittal = np.fliplr(p_sagittal)
+    p_sagittal = np.rot90(p_sagittal, 3)
+    return p_sagittal
+
+
+def extract_patch(contrast,vol,person,time,view,voxel,w,z,y,x):
     volume = vol[person][time][contrast]
+    interp3 = RegularGridInterpolator((z, y, x), volume, method='nearest')
     extract_func = globals()['extract_' + view]
-    return extract_func(volume, voxel[0],voxel[1],voxel[2], w)
+    return extract_func(interp3, voxel[0],voxel[1],voxel[2],w*2, w)
 
 def load_images(person_list,time_list,type_list):
     image_list =multi_dimensions(3)
@@ -87,7 +128,7 @@ def load_images(person_list,time_list,type_list):
 def predict_image(model, vol,person,time_list,view_list,MRI_list,threshold=0.5,w=16):
     import itertools
     vol_shape = vol[person][time_list[0]][MRI_list[0]].shape
-    prob_plot = np.zeros(vol_shape,dtype='uint8')
+    prob_plot = np.zeros(vol_shape,dtype='float16')
     segmentation = np.zeros(vol_shape,dtype='uint8')
 
     x = np.linspace(0, vol_shape[2] - 1, vol_shape[2], dtype='int')
@@ -98,12 +139,12 @@ def predict_image(model, vol,person,time_list,view_list,MRI_list,threshold=0.5,w
         index_list = []
         patch_dict = defaultdict(list)
         voxel_list = itertools.product(y, x)
-        for j, k in voxel_list:
+        for j, k in voxel_list :
             voxel_patches = itertools.product(time_list, view_list)
             if can_extract_patch(vol_shape,k,j,i,w):
                 index_list.append((i,j,k))
                 for time,view in voxel_patches:
-                    additionalArgument = vol,person,time,view,(k,j,i),w
+                    additionalArgument = vol,person,time,view,(k,j,i),w,z,y,x
                     l = map(lambda p: extract_patch(p, *additionalArgument), MRI_list)
                     patch_dict[str(time)+view].append(np.array(l))
         if len(index_list)>0:
@@ -115,7 +156,7 @@ def predict_image(model, vol,person,time_list,view_list,MRI_list,threshold=0.5,w
             for index,(i, j, k,) in enumerate(index_list):
                 if out_pred[index] > threshold:
                     segmentation[i, j, k] = 1
-                prob_plot[i, j, k] = out_pred[index] * 255
+                prob_plot[i, j, k] = out_pred[index]
 
     return segmentation,prob_plot
 
@@ -124,7 +165,7 @@ def predict_image(model, vol,person,time_list,view_list,MRI_list,threshold=0.5,w
 
 # create run folder
 time = datetime.now().strftime('%d_%m_%Y_%H_%M')
-run_dir = './' +time + '/'
+run_dir = './runs/' +time + '/'
 if not path.exists(run_dir):
     makedirs(run_dir)
 # create logger
@@ -149,7 +190,7 @@ logger.info("predict images")
 segmantation, prob_map = predict_image(model,images,1,time_list,view_list,MR_modalities)
 with open(run_dir + 'segmantation.npy', 'wb') as fp,open(run_dir + 'prob_plot.npy', 'wb') as fp1:
     np.save(fp,segmantation)
-    np.save(fp,prob_map)
+    np.save(fp1,prob_map)
 
 
 FLAIR_labels_1 = Src_Path+Labels_Path+"training01_02_mask1.nii"
@@ -172,3 +213,12 @@ logger.info("f1 is {} , accuracy is {} ".format(f1_score(test_labels,test_seg),a
 # a = extract_sagittal(vol,xc,yc,zc,w)
 # plt.imshow(a, cmap=matplotlib.cm.gray)
 # plt.show()
+
+# x = np.linspace(0, 180, 181, dtype='int')
+# y = np.linspace(0, 216, 217, dtype='int')
+# z = np.linspace(0, 180, 181, dtype='int')
+# count=0
+# for i,j,k in product(z,y,x):
+#     if labels[i,j,k] ==segmantation[i,j,k]:
+#         count +=1
+# print float(count)/181*181*217
