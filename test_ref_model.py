@@ -181,7 +181,7 @@ images = load_images(person_list,time_list,MR_modalities)
 #load model
 logger.info("create model")
 model = create_full_model()
-model_weights = r"/media/sf_shared/src/medicalImaging/ref/MIMTP_model_weights.h5"
+model_weights = r"./ref/MIMTP_model_weights.h5"
 logger.info("model load weights")
 model.load_weights(model_weights)
 model.compile(optimizer='adadelta', loss={'output':'categorical_crossentropy'})
