@@ -20,20 +20,7 @@ WM_prior_th = 0.5
 valSize = 0.2
 negative_threshold = 0.4
 
-Src_Path = r"./train/"
-Data_Path = r"data/"
-WM_Path = r"WM/"
-Labels_Path = r"seg/"
-Output_Path=r"patches/"
 
-# patch size
-sz = 32
-w = sz/2
-
-# patch center
-xc = 74
-yc = 145
-zc = 100
 
 def binary_disk(r):
     arr = np.ones((2*r+1,2*r+1,2*r+1))
@@ -133,6 +120,22 @@ def sample_negative_samples(axial_arr, coronal_arr, labels):
     return output_axial, output_coronal, output_labels
 
 if __name__ == "__main__":
+
+    Src_Path = r"./train/"
+    Data_Path = r"data/"
+    WM_Path = r"WM/"
+    Labels_Path = r"seg/"
+    Output_Path = r"patches/"
+
+    # patch size
+    sz = 32
+    w = sz / 2
+
+    # patch center
+    xc = 74
+    yc = 145
+    zc = 100
+
     logger = get_logger()
 
     # load volume
@@ -199,8 +202,6 @@ if __name__ == "__main__":
                 pickle.dump(coronal_val, fp5)
                 pickle.dump(axial_val_labels, fp6)
                 logger.info("person {} finished patches and saved".format(index))
-
-
 
 
 
