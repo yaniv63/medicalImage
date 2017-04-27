@@ -19,8 +19,7 @@ import numpy as np
 import matplotlib
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import threading
-
+from multiprocessing import  Queue,Process
 from os import path, makedirs
 from datetime import datetime
 import nibabel as nb
@@ -298,13 +297,13 @@ model.compile(optimizer='adadelta', loss={'output': 'categorical_crossentropy'})
 
 logger.info("predict images")
 BUF_SIZE = 15
-patch_q = Queue.Queue(BUF_SIZE)
-prediction_q =  Queue.Queue(BUF_SIZE)
-seg_q =  Queue.Queue(1)
-patch_thread = threading.Thread(target=predict_image,args=(images, masks, person_list[0], time_list, view_list, MR_modalities,vol_shape))
-model_thread = threading.Thread(target=model_pred,args=(model,time_list,vol_shape))
-seg_thread = threading.Thread(target=get_segmantation,args=(vol_shape,seg_q))
-thread_list = [patch_thread,model_thread,seg_thread]
+patch_q = Queue(BUF_SIZE)
+prediction_q =  Queue(BUF_SIZE)
+seg_q =  Queue(1)
+patch_p = Process(target=predict_image,args=(images, masks, person_list[0], time_list, view_list, MR_modalities,vol_shape))
+model_p = Process(target=model_pred,args=(model,time_list,vol_shape))
+seg_p = Process(target=get_segmantation,args=(vol_shape,seg_q))
+thread_list = [patch_p,model_p,seg_p]
 for i in thread_list:
     i.start()
 for i in thread_list:
