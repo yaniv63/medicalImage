@@ -32,7 +32,6 @@ from itertools import product
 from scipy.interpolate import RegularGridInterpolator
 import scipy.ndimage.morphology as mrph
 
-from MIMTP_Detection_demo import create_full_model
 from logging_tools import get_logger
 from prepro_pipeline import binary_disk, FLAIR_th, WM_prior_th
 
@@ -230,12 +229,23 @@ def predict_image( vol, masks, person, time_list, view_list, MRI_list,vol_shape,
         if len(index_list) > 0:
             patch_q.put((index_list, patch_dict))
             logger.info("put layer {}".format(i))
+    patch_q.put((-1,-1))
 
-def model_pred(model,time_list,vol_shape):
-    max = vol_shape[0]
+def model_pred(time_list):
+    from MIMTP_Detection_demo import create_full_model
+    # load model
+    logger.info("create model")
+    model = create_full_model()
+    model_weights = r"./ref/MIMTP_model_weights.h5"
+    logger.info("model load weights")
+    model.load_weights(model_weights)
+    model.compile(optimizer='adadelta', loss={'output': 'categorical_crossentropy'})
+    logger.info("start predict with model")
     while True:
         indexes,patches =patch_q.get()
         curr_layer = indexes[0][0]
+        if curr_layer == -1:
+            break
         predictions = model.predict({'s0_curr': np.array(patches[str(time_list[1]) + 'axial']),
                                      's0_prev': np.array(patches[str(time_list[0]) + 'axial']),
                                      's1_curr': np.array(patches[str(time_list[1]) + 'coronal']),
@@ -245,8 +255,7 @@ def model_pred(model,time_list,vol_shape):
         out_pred = predictions['output'][:, 1]
         prediction_q.put((indexes,out_pred))
         logger.info("predicted layer {} ".format(curr_layer))
-        if curr_layer >=max:
-            break
+
 
 def get_segmantation(vol_shape,queue,threshold=0.5):
     prob_plot = np.zeros(vol_shape, dtype='float16')
@@ -254,12 +263,12 @@ def get_segmantation(vol_shape,queue,threshold=0.5):
     while True:
         indexes,pred = prediction_q.get()
         curr_layer = indexes[0][0]
+        if curr_layer == -1:
+            break
         for index, (i, j, k,) in enumerate(indexes):
             if pred[index] > threshold:
                 segmentation[i, j, k] = 1
             prob_plot[i, j, k] = pred[index]
-        if curr_layer >= max:
-            break
         logger.info("segmanted layer {}".format(curr_layer))
     queue.put((segmentation,prob_plot))
 
@@ -287,21 +296,15 @@ vol_shape = images[person_list[0]][time_list[0]][MR_modalities[0]].shape
 wm_masks = load_wm_masks(person_list, time_list)
 masks = create_image_masks(wm_masks, images, person_list, time_list)
 
-# load model
-logger.info("create model")
-model = create_full_model()
-model_weights = r"./ref/MIMTP_model_weights.h5"
-logger.info("model load weights")
-model.load_weights(model_weights)
-model.compile(optimizer='adadelta', loss={'output': 'categorical_crossentropy'})
+
 
 logger.info("predict images")
-BUF_SIZE = 15
+BUF_SIZE = 50
 patch_q = Queue(BUF_SIZE)
 prediction_q =  Queue(BUF_SIZE)
 seg_q =  Queue(1)
 patch_p = Process(target=predict_image,args=(images, masks, person_list[0], time_list, view_list, MR_modalities,vol_shape))
-model_p = Process(target=model_pred,args=(model,time_list,vol_shape))
+model_p = Process(target=model_pred,args=(time_list))
 seg_p = Process(target=get_segmantation,args=(vol_shape,seg_q))
 thread_list = [patch_p,model_p,seg_p]
 for i in thread_list:
