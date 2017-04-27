@@ -6,6 +6,7 @@ Created on Wed Dec 21 19:32:39 2016
 """
 
 # -*- coding: utf-8 -*-
+import Queue
 
 from sklearn import pipeline
 
@@ -18,6 +19,7 @@ import numpy as np
 import matplotlib
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import threading
 
 from os import path, makedirs
 from datetime import datetime
@@ -53,9 +55,8 @@ def multi_dimensions(n, type=None):
 
 
 def can_extract_patch(shape, xc, yc, zc, w):
-    return (xc - w + 0.5) >= 0 and (xc + w + 0.5) <= (shape[2] - 1) and (yc - w + 0.5) >= 0 and (yc + w + 0.5) <= (
-    shape[1] - 1) \
-           and (zc - w + 0.5) >= 0 and (zc + w + 0.5) <= (shape[0] - 1)
+    return (xc - w + 0.5) >= 0 and (xc + w + 0.5) <= (shape[2] - 1) and (yc - w + 0.5) >= 0 and\
+           (yc + w + 0.5) <= (shape[1] - 1) and (zc - w + 0.5) >= 0 and (zc + w + 0.5) <= (shape[0] - 1)
 
 
 def extract_axial(interp3, xc, yc, zc, sz, w):
@@ -171,12 +172,46 @@ def post_process(seg, thresh):
     return (res > (thresh + label_weight)) * 1
 
 
-def predict_image(model, vol, masks, person, time_list, view_list, MRI_list, threshold=0.5, w=16):
-    import itertools
-    vol_shape = vol[person][time_list[0]][MRI_list[0]].shape
-    prob_plot = np.zeros(vol_shape, dtype='float16')
-    segmentation = np.zeros(vol_shape, dtype='uint8')
+# def predict_image(model, vol, masks, person, time_list, view_list, MRI_list, threshold=0.5, w=16):
+#     import itertools
+#     vol_shape = vol[person][time_list[0]][MRI_list[0]].shape
+#     prob_plot = np.zeros(vol_shape, dtype='float16')
+#     segmentation = np.zeros(vol_shape, dtype='uint8')
+#
+#     x = np.linspace(0, vol_shape[2] - 1, vol_shape[2], dtype='int')
+#     y = np.linspace(0, vol_shape[1] - 1, vol_shape[1], dtype='int')
+#     z = np.linspace(0, vol_shape[0] - 1, vol_shape[0], dtype='int')
+#     logger.info("patches for model")
+#     for i in z:
+#         index_list = []
+#         patch_dict = defaultdict(list)
+#         voxel_list = itertools.product(y, x)
+#         for j, k in voxel_list:
+#             voxel_patches = itertools.product(time_list, view_list)
+#             if can_extract_patch(vol_shape, k, j, i, w) and is_masks_positive(masks, person, time_list, (i, j, k)):
+#                 index_list.append((i, j, k))
+#                 for time, view in voxel_patches:
+#                     additionalArgument = vol, person, time, view, (k, j, i), w, z, y, x
+#                     l = map(lambda p: extract_patch(p, *additionalArgument), MRI_list)
+#                     patch_dict[str(time) + view].append(np.array(l))
+#         if len(index_list) > 0:
+#             logger.info("predict model z is {}".format(i))
+#             predictions = model.predict({'s0_curr': np.array(patch_dict[str(time_list[1]) + 'axial']),
+#                                          's0_prev': np.array(patch_dict[str(time_list[0]) + 'axial']),
+#                                          's1_curr': np.array(patch_dict[str(time_list[1]) + 'coronal']),
+#                                          's1_prev': np.array(patch_dict[str(time_list[0]) + 'coronal']),
+#                                          's2_curr': np.array(patch_dict[str(time_list[1]) + 'sagittal']),
+#                                          's2_prev': np.array(patch_dict[str(time_list[0]) + 'sagittal'])})
+#             out_pred = predictions['output'][:, 1]
+#             for index, (i, j, k,) in enumerate(index_list):
+#                 if out_pred[index] > threshold:
+#                     segmentation[i, j, k] = 1
+#                 prob_plot[i, j, k] = out_pred[index]
+#
+#     return segmentation, prob_plot
 
+
+def predict_image( vol, masks, person, time_list, view_list, MRI_list,vol_shape, w=16):
     x = np.linspace(0, vol_shape[2] - 1, vol_shape[2], dtype='int')
     y = np.linspace(0, vol_shape[1] - 1, vol_shape[1], dtype='int')
     z = np.linspace(0, vol_shape[0] - 1, vol_shape[0], dtype='int')
@@ -184,9 +219,9 @@ def predict_image(model, vol, masks, person, time_list, view_list, MRI_list, thr
     for i in z:
         index_list = []
         patch_dict = defaultdict(list)
-        voxel_list = itertools.product(y, x)
+        voxel_list = product(y, x)
         for j, k in voxel_list:
-            voxel_patches = itertools.product(time_list, view_list)
+            voxel_patches = product(time_list, view_list)
             if can_extract_patch(vol_shape, k, j, i, w) and is_masks_positive(masks, person, time_list, (i, j, k)):
                 index_list.append((i, j, k))
                 for time, view in voxel_patches:
@@ -194,20 +229,44 @@ def predict_image(model, vol, masks, person, time_list, view_list, MRI_list, thr
                     l = map(lambda p: extract_patch(p, *additionalArgument), MRI_list)
                     patch_dict[str(time) + view].append(np.array(l))
         if len(index_list) > 0:
-            logger.info("predict model z is {}".format(i))
-            predictions = model.predict({'s0_curr': np.array(patch_dict[str(time_list[1]) + 'axial']),
-                                         's0_prev': np.array(patch_dict[str(time_list[0]) + 'axial']),
-                                         's1_curr': np.array(patch_dict[str(time_list[1]) + 'coronal']),
-                                         's1_prev': np.array(patch_dict[str(time_list[0]) + 'coronal']),
-                                         's2_curr': np.array(patch_dict[str(time_list[1]) + 'sagittal']),
-                                         's2_prev': np.array(patch_dict[str(time_list[0]) + 'sagittal'])})
-            out_pred = predictions['output'][:, 1]
-            for index, (i, j, k,) in enumerate(index_list):
-                if out_pred[index] > threshold:
-                    segmentation[i, j, k] = 1
-                prob_plot[i, j, k] = out_pred[index]
+            patch_q.put((index_list, patch_dict))
+            logger.info("put layer {}".format(i))
 
-    return segmentation, prob_plot
+def model_pred(model,time_list,vol_shape):
+    max = vol_shape[0]
+    while True:
+        indexes,patches =patch_q.get()
+        curr_layer = indexes[0][0]
+        predictions = model.predict({'s0_curr': np.array(patches[str(time_list[1]) + 'axial']),
+                                     's0_prev': np.array(patches[str(time_list[0]) + 'axial']),
+                                     's1_curr': np.array(patches[str(time_list[1]) + 'coronal']),
+                                     's1_prev': np.array(patches[str(time_list[0]) + 'coronal']),
+                                     's2_curr': np.array(patches[str(time_list[1]) + 'sagittal']),
+                                     's2_prev': np.array(patches[str(time_list[0]) + 'sagittal'])})
+        out_pred = predictions['output'][:, 1]
+        prediction_q.put((indexes,out_pred))
+        logger.info("predicted layer {} ".format(curr_layer))
+        if curr_layer >=max:
+            break
+
+def get_segmantation(vol_shape,queue,threshold=0.5):
+    prob_plot = np.zeros(vol_shape, dtype='float16')
+    segmentation = np.zeros(vol_shape, dtype='uint8')
+    while True:
+        indexes,pred = prediction_q.get()
+        curr_layer = indexes[0][0]
+        for index, (i, j, k,) in enumerate(indexes):
+            if pred[index] > threshold:
+                segmentation[i, j, k] = 1
+            prob_plot[i, j, k] = pred[index]
+        if curr_layer >= max:
+            break
+        logger.info("segmanted layer {}".format(curr_layer))
+    queue.put((segmentation,prob_plot))
+
+
+
+
 
 
 # create run folder
@@ -218,13 +277,14 @@ if not path.exists(run_dir):
 # create logger
 logger = get_logger(run_dir)
 
-person_list = [1]
-time_list = [1, 2]
+person_list = [2]
+time_list = [2,3]
 MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial', 'coronal', 'sagittal']
 # load images
 logger.info("load images")
 images = load_images(person_list, time_list, MR_modalities)
+vol_shape = images[person_list[0]][time_list[0]][MR_modalities[0]].shape
 wm_masks = load_wm_masks(person_list, time_list)
 masks = create_image_masks(wm_masks, images, person_list, time_list)
 
@@ -237,12 +297,26 @@ model.load_weights(model_weights)
 model.compile(optimizer='adadelta', loss={'output': 'categorical_crossentropy'})
 
 logger.info("predict images")
-segmantation, prob_map = predict_image(model, images, masks, 1, time_list, view_list, MR_modalities)
+BUF_SIZE = 15
+patch_q = Queue.Queue(BUF_SIZE)
+prediction_q =  Queue.Queue(BUF_SIZE)
+seg_q =  Queue.Queue(1)
+patch_thread = threading.Thread(target=predict_image,args=(images, masks, person_list[0], time_list, view_list, MR_modalities,vol_shape))
+model_thread = threading.Thread(target=model_pred,args=(model,time_list,vol_shape))
+seg_thread = threading.Thread(target=get_segmantation,args=(vol_shape,seg_q))
+thread_list = [patch_thread,model_thread,seg_thread]
+for i in thread_list:
+    i.start()
+for i in thread_list:
+    i.join()
+segmantation, prob_map = seg_q.get()
+
+#segmantation, prob_map = predict_image(model, images, masks, 1, time_list, view_list, MR_modalities)
 with open(run_dir + 'segmantation.npy', 'wb') as fp, open(run_dir + 'prob_plot.npy', 'wb') as fp1:
     np.save(fp, segmantation)
     np.save(fp1, prob_map)
 
-FLAIR_labels_1 = Src_Path + Labels_Path + "training01_02_mask1.nii"
+FLAIR_labels_1 = Src_Path + Labels_Path + "training0{}_0{}_mask1.nii".format(person_list[0],time_list[1])
 labels = nb.load(FLAIR_labels_1).get_data()
 labels = labels.T
 labels = np.rot90(labels, 2, axes=(1, 2))
