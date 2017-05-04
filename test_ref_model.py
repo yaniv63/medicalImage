@@ -15,6 +15,7 @@ Created on Mon Dec 26 16:42:11 2016
 
 @author: yaniv
 """
+from functools import partial
 import numpy as np
 import matplotlib
 # matplotlib.use('Agg')
@@ -28,7 +29,7 @@ import pickle
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold
 from collections import defaultdict
-from itertools import product
+from itertools import product,izip_longest
 from scipy.interpolate import RegularGridInterpolator
 import scipy.ndimage.morphology as mrph
 
@@ -44,12 +45,18 @@ Data_Path = r"data/"
 WM_path = r"WM/"
 
 
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return izip_longest(*args, fillvalue=fillvalue)
+
 def multi_dimensions(n, type=None):
     if n <= 0:
         if type is not None:
             return type()
         return None
-    return defaultdict(lambda: multi_dimensions(n - 1, type))
+    return defaultdict(partial(multi_dimensions,n=n-1,type=type))
 
 
 def can_extract_patch(shape, xc, yc, zc, w):
@@ -209,29 +216,40 @@ def post_process(seg, thresh):
 #     return segmentation, prob_plot
 
 
-def predict_image( vol, masks, person, time_list, view_list, MRI_list,vol_shape, w=16):
-    x = np.linspace(0, vol_shape[2] - 1, vol_shape[2], dtype='int')
-    y = np.linspace(0, vol_shape[1] - 1, vol_shape[1], dtype='int')
-    z = np.linspace(0, vol_shape[0] - 1, vol_shape[0], dtype='int')
-    logger.info("patches for model")
-    for i in z:
+def predict_image( vol, masks, person, time_list, view_list, MRI_list, w=16):
+    logger.info("create patches process on")
+    args = vol, masks, person, time_list, view_list, MRI_list,w
+    import concurrent.futures
+    with concurrent.futures.ProcessPoolExecutor(10) as executor:
+        future = executor.submit(patch_process,*args)
+        future.result()
+    patch_q.put((-1, -1))
+
+
+def patch_process(vol, masks,person, time_list, view_list, MRI_list, w=16):
+        logger.info("create patches thread on")
+        max_batch =5000
         index_list = []
         patch_dict = defaultdict(list)
-        voxel_list = product(y, x)
-        for j, k in voxel_list:
-            voxel_patches = product(time_list, view_list)
-            if can_extract_patch(vol_shape, k, j, i, w) and is_masks_positive(masks, person, time_list, (i, j, k)):
-                index_list.append((i, j, k))
-                for time, view in voxel_patches:
-                    additionalArgument = vol, person, time, view, (k, j, i), w, z, y, x
-                    l = map(lambda p: extract_patch(p, *additionalArgument), MRI_list)
-                    patch_dict[str(time) + view].append(np.array(l))
-        if len(index_list) > 0:
-            patch_q.put((index_list, patch_dict))
-            logger.info("put layer {}".format(i))
-    patch_q.put((-1,-1))
+        while True:
+                i,j,k = voxel_q.get()
+                if i == -1:
+                    break
+                voxel_patches = product(time_list, view_list)
+                if can_extract_patch(vol_shape, k, j, i, w) and is_masks_positive(masks, person, time_list, (i, j, k)):
+                    index_list.append((i, j, k))
+                    for time, view in voxel_patches:
+                        additionalArgument = vol, person, time, view, (k, j, i), w, z, y, x
+                        l = map(lambda p: extract_patch(p, *additionalArgument), MRI_list)
+                        patch_dict[str(time) + view].append(np.array(l))
+                    if len(index_list) >= max_batch :
+                        patch_q.put((index_list, patch_dict))
+                        logger.info("put layer ")
+                        index_list = []
+                        patch_dict = defaultdict(list)
 
-def model_pred(time_list):
+def model_pred(prev_time,curr_time):
+    logger.info("predict process on")
     from MIMTP_Detection_demo import create_full_model
     # load model
     logger.info("create model")
@@ -243,28 +261,30 @@ def model_pred(time_list):
     logger.info("start predict with model")
     while True:
         indexes,patches =patch_q.get()
-        curr_layer = indexes[0][0]
-        if curr_layer == -1:
+        if indexes == -1:
+            prediction_q.put((indexes, patches))
             break
-        predictions = model.predict({'s0_curr': np.array(patches[str(time_list[1]) + 'axial']),
-                                     's0_prev': np.array(patches[str(time_list[0]) + 'axial']),
-                                     's1_curr': np.array(patches[str(time_list[1]) + 'coronal']),
-                                     's1_prev': np.array(patches[str(time_list[0]) + 'coronal']),
-                                     's2_curr': np.array(patches[str(time_list[1]) + 'sagittal']),
-                                     's2_prev': np.array(patches[str(time_list[0]) + 'sagittal'])})
+        curr_layer = indexes[0][0]
+        predictions = model.predict({'s0_curr': np.array(patches[str(curr_time) + 'axial']),
+                                     's0_prev': np.array(patches[str(prev_time) + 'axial']),
+                                     's1_curr': np.array(patches[str(curr_time) + 'coronal']),
+                                     's1_prev': np.array(patches[str(prev_time) + 'coronal']),
+                                     's2_curr': np.array(patches[str(curr_time) + 'sagittal']),
+                                     's2_prev': np.array(patches[str(prev_time) + 'sagittal'])})
         out_pred = predictions['output'][:, 1]
         prediction_q.put((indexes,out_pred))
         logger.info("predicted layer {} ".format(curr_layer))
 
 
 def get_segmantation(vol_shape,queue,threshold=0.5):
+    logger.info("segmante process on")
     prob_plot = np.zeros(vol_shape, dtype='float16')
     segmentation = np.zeros(vol_shape, dtype='uint8')
     while True:
         indexes,pred = prediction_q.get()
-        curr_layer = indexes[0][0]
-        if curr_layer == -1:
+        if indexes == -1:
             break
+        curr_layer = indexes[0][0]
         for index, (i, j, k,) in enumerate(indexes):
             if pred[index] > threshold:
                 segmentation[i, j, k] = 1
@@ -272,7 +292,12 @@ def get_segmantation(vol_shape,queue,threshold=0.5):
         logger.info("segmanted layer {}".format(curr_layer))
     queue.put((segmentation,prob_plot))
 
-
+def iter_voxels():
+    logger.info("iterator process on")
+    voxel_list = product(z, y, x)
+    for voxel in voxel_list:
+        voxel_q.put(voxel)
+    voxel_q.put((-1,-1,-1))
 
 
 
@@ -296,20 +321,23 @@ vol_shape = images[person_list[0]][time_list[0]][MR_modalities[0]].shape
 wm_masks = load_wm_masks(person_list, time_list)
 masks = create_image_masks(wm_masks, images, person_list, time_list)
 
-
-
+x = np.linspace(0, vol_shape[2] - 1, vol_shape[2], dtype='int')
+y = np.linspace(0, vol_shape[1] - 1, vol_shape[1], dtype='int')
+z = np.linspace(0, vol_shape[0] - 1, vol_shape[0], dtype='int')
+voxel_q = Queue(vol_shape[0]*vol_shape[1]*vol_shape[2])
 logger.info("predict images")
 BUF_SIZE = 50
 patch_q = Queue(BUF_SIZE)
 prediction_q =  Queue(BUF_SIZE)
 seg_q =  Queue(1)
-patch_p = Process(target=predict_image,args=(images, masks, person_list[0], time_list, view_list, MR_modalities,vol_shape))
-model_p = Process(target=model_pred,args=(time_list))
+patch_p = Process(target=predict_image,args=(images, masks, person_list[0], time_list, view_list, MR_modalities))
+model_p = Process(target=model_pred,args=list(time_list))
+iterate_p = Process(target=iter_voxels)
 seg_p = Process(target=get_segmantation,args=(vol_shape,seg_q))
-thread_list = [patch_p,model_p,seg_p]
-for i in thread_list:
+p_list = [patch_p , model_p,seg_p, iterate_p]
+for i in p_list:
     i.start()
-for i in thread_list:
+for i in p_list:
     i.join()
 segmantation, prob_map = seg_q.get()
 
