@@ -14,6 +14,7 @@ Created on Mon Dec 26 16:42:11 2016
 @author: yaniv
 """
 import numpy as np
+import nibabel as nb
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -21,11 +22,13 @@ import matplotlib.pyplot as plt
 from os import path, makedirs
 from datetime import datetime
 from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
-from keras.optimizers import SGD
+from keras.optimizers import Adadelta
 import pickle
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold
 from collections import defaultdict
+from sklearn.metrics import accuracy_score, f1_score
+
 
 
 from two_predictors_combined import one_predictor_model
@@ -34,6 +37,7 @@ from logging_tools import get_logger
 weight_path = r'./trained_weights/'
 patches = r'./patches/'
 runs_dir = r'./runs/'
+Labels_Path = r"seg/"
 Src_Path = r"./train/"
 Data_Path = r"data/"
 
@@ -121,16 +125,16 @@ def calc_dice(confusion_mat,identifier):
     logger.info("model {} dice {} is ".format(identifier,dice))
 
 def create_callbacks(name,fold):
-    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_acc',
+    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_fmeasure',
                                    save_best_only=True,
                                    save_weights_only=True)
-    stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=1, mode='auto')
-    stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5, verbose=1, mode='auto')
+    # stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=1, mode='auto')
+    # stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5, verbose=1, mode='auto')
     print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
                  format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
                         logs['val_fmeasure'])))
-    mycallbacks = [print_logs, stop_train_callback1, stop_train_callback2,save_weights]
+    mycallbacks = [print_logs,save_weights]# stop_train_callback1, stop_train_callback2]
     return mycallbacks
 
 def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_size=256):
@@ -148,7 +152,7 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=50, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=20, callbacks=callbacks,
                                       validation_data=val_set)
     confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
@@ -166,22 +170,22 @@ def test(model,patch_type,testList,name):
     confusion_mat = calc_confusion_mat(model, test_samples, test_labels, "individual test ")
     calc_dice(confusion_mat, "individual test ")
 
-def probability_plot(model, vol,fold):
+def probability_plot(model, vol,fold,threshold=0.5,slice = 95):
     import itertools
-    from scipy.interpolate import RegularGridInterpolator
 
     prob_plot = np.zeros(vol.shape)
+    final_decision = np.zeros(vol.shape)
+
     x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
     y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
     z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
     voxel_list = itertools.product(y,x)
     patches_list = []
-    i=110
     logger.info("patches for model")
     for j, k in voxel_list:
-        axial_p = extract_axial(vol, k, j, i,16)
+        axial_p = extract_axial(vol, k, j, slice,16)
         if type(axial_p) == np.ndarray:
-            patches_list.append((i,j,k,axial_p))
+            patches_list.append((slice,j,k,axial_p))
 
     patches = [v[3] for v in patches_list]
 
@@ -189,18 +193,63 @@ def probability_plot(model, vol,fold):
     logger.info("predict model")
 
     predictions = model.predict(patches)
-    for index,(i, j, k,_) in enumerate(patches_list):
-        prob_plot[i, j, k] = predictions[index]*255
-    plt.clf()
-    plt.imshow(prob_plot[i, :, :], cmap=matplotlib.cm.gray)
-    plt.savefig(run_dir +'slice_prob_{}'.format(fold) + '.png')
+    for index,(slice, j, k,_) in enumerate(patches_list):
+        if predictions[index] > threshold:
+            final_decision[slice, j, k] = 255
+        prob_plot[slice, j, k] = predictions[index] * 255
+
+    params = {'figure_name': "slice_prob_{}".format(fold),"image" : prob_plot[slice, :, :],
+              "image_att": dict(cmap=matplotlib.cm.gray),'save_file': run_dir +'slice_prob_{}'.format(fold) + '.png'}
+    generic_plot(params)
+    params["image"] = final_decision[slice, :, :]
+    params["save_file"] = run_dir +'slice_decision_{}'.format(fold) + '.png'
+    generic_plot(params)
+
+
+def predict_image(model, vol, threshold=0.5):
+    import itertools
+
+    prob_plot = np.zeros(vol.shape, dtype='float16')
+    segmentation = np.zeros(vol.shape, dtype='uint8')
+
+    x = np.linspace(0, vol.shape[2] - 1, vol.shape[2], dtype='int')
+    y = np.linspace(0, vol.shape[1] - 1, vol.shape[1], dtype='int')
+    z = np.linspace(0, vol.shape[0] - 1, vol.shape[0], dtype='int')
+    logger.info("patches for model")
+    for i in z:
+        patches_list = []
+        voxel_list = itertools.product(y, x)
+        for j, k in voxel_list:
+            axial_p = extract_axial(vol, k, j, i, 16)
+            if type(axial_p) == np.ndarray:
+                patches_list.append((i, j, k, axial_p))
+
+        patches = [v[3] for v in patches_list]
+
+        patches = np.expand_dims(patches, 1)
+        logger.info("predict model")
+
+        predictions = model.predict(patches)
+        for index, (i, j, k, _) in enumerate(patches_list):
+            if predictions[index] > threshold:
+                segmentation[i, j, k] = 1
+            prob_plot[i, j, k] = predictions[index]
+
+    return segmentation ,prob_plot
+
+    # params = {'figure_name': "slice_prob_{}".format(fold),"image" : prob_plot[slice, :, :],
+    #           "image_att": dict(cmap=matplotlib.cm.gray),'save_file': run_dir +'slice_prob_{}'.format(fold) + '.png'}
+    # generic_plot(params)
+    # params["image"] = final_decision[slice, :, :]
+    # params["save_file"] = run_dir +'slice_decision_{}'.format(fold) + '.png'
+    # generic_plot(params)
+
 
 
 
 def generic_plot(kwargs):
     import matplotlib
     matplotlib.use('Agg')
-    #import pylab as plt
     import matplotlib.pyplot as plt
     from pylab import rcParams
     rcParams['figure.figsize'] = 10, 10
@@ -216,10 +265,16 @@ def generic_plot(kwargs):
         line_attribute = kwargs["line_att"]
     else:
         line_attribute = ''
+    if kwargs.has_key("image_att"):
+        image_attribute = kwargs["image_att"]
+    else:
+        image_attribute = {}
     if kwargs.has_key("x"):
         plt.plot(kwargs["x"],kwargs["y"],**line_attribute)
     elif  kwargs.has_key("y"):
         plt.plot(kwargs["y"],**line_attribute)
+    elif kwargs.has_key("image"):
+        plt.imshow(kwargs["image"],**image_attribute)
     if kwargs.has_key("legend"):
         plt.legend(kwargs["legend"], loc=0)
     if kwargs.has_key("save_file"):
@@ -257,10 +312,10 @@ runs = []
 predictors = []
 
 for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-    logger.info("TRAIN: {} TEST {} ".format( person_indices[train_index],person_indices[val_index]) )
+    logger.info("Train: {} Val {} ".format( person_indices[train_index],person_indices[val_index]) )
     predictors.append(one_predictor_model())
-    sg = SGD(nesterov=True)
-    predictors[i].compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    opt = Adadelta(lr=0.05)
+    predictors[i].compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     #predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
     history = train(predictors[i],person_indices[train_index],person_indices[val_index], "axial", i, name=i)
     runs.append(history.history)
@@ -270,14 +325,29 @@ with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
 plot_training(runs)
 
 
-#with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
+# with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
 #        runs = pickle.load(fp)
 
-FLAIR_filename = Src_Path+Data_Path+"Person05_Time01_FLAIR.npy"
+person=5
+mri_time=1
+
+FLAIR_labels_1 = Src_Path + Labels_Path + "training0{}_0{}_mask1.nii".format(person,mri_time)
+labels = nb.load(FLAIR_labels_1).get_data()
+labels = labels.T
+labels = np.rot90(labels, 2, axes=(1, 2))
+test_labels = labels.flatten().tolist()
+
+
+FLAIR_filename = Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(person,mri_time)
 vol = np.load(FLAIR_filename)
 # test model
 for i in range(4):
-    test(predictors[i],"axial",[5],i)
-    probability_plot(predictors[i],vol,i)
-
-
+    #test(predictors[i],"axial",[5],i)
+    probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
+    segmantation,prob_map = predict_image(predictors[i],vol)
+    with open(run_dir + 'segmantation{}.npy'.format(i), 'wb') as fp, open(run_dir + 'prob_plot{}.npy'.format(i), 'wb') as fp1:
+        np.save(fp, segmantation)
+        np.save(fp1, prob_map)
+    test_seg = segmantation.flatten().tolist()
+    logger.info("predictor {} f1 is {} , accuracy is {} ".format
+                    (i,f1_score(test_labels, test_seg), accuracy_score(test_labels, test_seg)))
