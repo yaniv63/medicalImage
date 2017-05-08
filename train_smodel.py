@@ -339,12 +339,12 @@ kf = KFold(n_splits=4)
 runs = []
 predictors = []
 for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-    logger.info("Train: {} Val {} ".format(train_index ,val_index) )
+    logger.info("Train: {} Val {} ".format(person_indices[train_index] ,person_indices[val_index]) )
     predictors.append(one_predictor_model())
     opt = Adadelta(lr=0.05)
     predictors[i].compile(optimizer=opt, loss='binary_crossentropy', metrics=['fmeasure'])
     #predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
-    history = train(predictors[i],train_index,val_index, "axial", i, name=i)
+    history = train(predictors[i],person_indices[train_index] ,person_indices[val_index], "axial", i, name=i)
     runs.append(history.history)
 
 with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
