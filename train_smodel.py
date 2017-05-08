@@ -19,6 +19,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+
 from os import path, makedirs
 from datetime import datetime
 from keras.callbacks import EarlyStopping, LambdaCallback, ModelCheckpoint
@@ -28,6 +29,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold
 from collections import defaultdict
 from sklearn.metrics import accuracy_score, f1_score
+import scipy.ndimage.morphology as mrph
 
 
 
@@ -40,6 +42,18 @@ runs_dir = r'./runs/'
 Labels_Path = r"seg/"
 Src_Path = r"./train/"
 Data_Path = r"data/"
+WM_path = r"WM/"
+
+def binary_disk(r):
+    arr = np.ones((2*r+1,2*r+1,2*r+1))
+    arr[r,r,r] = 0
+
+    dt = mrph.distance_transform_bf(arr,metric='euclidean')
+    disk = dt<=r
+    disk = disk.astype('float32')
+
+    return disk
+
 
 def extract_axial(vol,xc, yc, zc, w):
     try:
@@ -77,9 +91,11 @@ def generator(positive_list,negative_list,data,batch_size=256,patch_width = 16,o
     batch_num = len(positive_list)/batch_pos
     while True:
         #modify list to divide by batch_size
-        positive_list_np = np.random.permutation(positive_list)
-        positive_list_np = positive_list_np[:batch_num*batch_pos]
-        negative_list_np = np.random.permutation(negative_list)
+        # positive_list_np = np.random.permutation(positive_list)
+        # positive_list_np = positive_list_np[:batch_num*batch_pos]
+        # negative_list_np = np.random.permutation(negative_list)
+        positive_list_np = positive_list[:batch_num*batch_pos]
+        negative_list_np = negative_list
         for batch in range(batch_num):
             positive_batch = positive_list_np[batch*batch_pos:(batch+1)*batch_pos]
             positive_batch_patches = [[extract_axial(data[person][time],k,j,i,patch_width),1] for person,time,i,j,k in positive_batch]
@@ -152,7 +168,7 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=20, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=25, callbacks=callbacks,
                                       validation_data=val_set)
     confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
@@ -206,7 +222,7 @@ def probability_plot(model, vol,fold,threshold=0.5,slice = 95):
     generic_plot(params)
 
 
-def predict_image(model, vol, threshold=0.5):
+def predict_image(model, vol,mask, threshold=0.5):
     import itertools
 
     prob_plot = np.zeros(vol.shape, dtype='float16')
@@ -220,20 +236,20 @@ def predict_image(model, vol, threshold=0.5):
         patches_list = []
         voxel_list = itertools.product(y, x)
         for j, k in voxel_list:
-            axial_p = extract_axial(vol, k, j, i, 16)
-            if type(axial_p) == np.ndarray:
-                patches_list.append((i, j, k, axial_p))
+            if mask[i][j][k] :
+                axial_p = extract_axial(vol, k, j, i, 16)
+                if type(axial_p) == np.ndarray:
+                    patches_list.append((i, j, k, axial_p))
+        if len(patches_list) > 0:
+            patches = [v[3] for v in patches_list]
 
-        patches = [v[3] for v in patches_list]
+            patches = np.expand_dims(patches, 1)
 
-        patches = np.expand_dims(patches, 1)
-        logger.info("predict model")
-
-        predictions = model.predict(patches)
-        for index, (i, j, k, _) in enumerate(patches_list):
-            if predictions[index] > threshold:
-                segmentation[i, j, k] = 1
-            prob_plot[i, j, k] = predictions[index]
+            predictions = model.predict(patches)
+            for index, (i, j, k, _) in enumerate(patches_list):
+                if predictions[index] > threshold:
+                    segmentation[i, j, k] = 1
+                prob_plot[i, j, k] = predictions[index]
 
     return segmentation ,prob_plot
 
@@ -328,8 +344,13 @@ plot_training(runs)
 # with open(run_dir + 'cross_valid_stats.lst', 'rb') as fp:
 #        runs = pickle.load(fp)
 
+
+#test segmantation
 person=5
 mri_time=1
+
+FLAIR_filename = Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(person,mri_time)
+vol = np.load(FLAIR_filename)
 
 FLAIR_labels_1 = Src_Path + Labels_Path + "training0{}_0{}_mask1.nii".format(person,mri_time)
 labels = nb.load(FLAIR_labels_1).get_data()
@@ -338,13 +359,27 @@ labels = np.rot90(labels, 2, axes=(1, 2))
 test_labels = labels.flatten().tolist()
 
 
-FLAIR_filename = Src_Path+Data_Path+"Person0{}_Time0{}_FLAIR.npy".format(person,mri_time)
-vol = np.load(FLAIR_filename)
+
+#create mask
+wm_mask = np.load(Src_Path + WM_path + "Person0{}_Time0{}.npy".format(person, mri_time))
+sel = binary_disk(2)
+WM_dilated = mrph.filters.maximum_filter(wm_mask, footprint=sel)
+
+# apply thresholds
+FLAIR_th = 0.91
+WM_prior_th = 0.5
+FLAIR_mask = vol > FLAIR_th
+WM_mask = WM_dilated > WM_prior_th
+
+# final mask: logical AND
+candidate_mask = np.logical_and(FLAIR_mask, WM_mask)
+
+
 # test model
 for i in range(4):
     #test(predictors[i],"axial",[5],i)
     probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
-    segmantation,prob_map = predict_image(predictors[i],vol)
+    segmantation,prob_map = predict_image(predictors[i],vol,candidate_mask)
     with open(run_dir + 'segmantation{}.npy'.format(i), 'wb') as fp, open(run_dir + 'prob_plot{}.npy'.format(i), 'wb') as fp1:
         np.save(fp, segmantation)
         np.save(fp1, prob_map)
