@@ -172,7 +172,7 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=25, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=30, callbacks=callbacks,
                                       validation_data=val_set)
     confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
