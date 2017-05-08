@@ -334,19 +334,18 @@ logger = get_logger(run_dir)
 
 # ######## train model
 logger.info("use adadelta")
-train_index = [1,2,4]
-val_index = [3]
-i=0
+person_indices =np.array([1,2,3,4])
+kf = KFold(n_splits=4)
 runs = []
 predictors = []
-
-logger.info("Train: {} Val {} ".format(train_index ,val_index) )
-predictors.append(one_predictor_model())
-opt = Adadelta(lr=0.05)
-predictors[i].compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-#predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
-history = train(predictors[i],train_index,val_index, "axial", i, name=i)
-runs.append(history.history)
+for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
+    logger.info("Train: {} Val {} ".format(train_index ,val_index) )
+    predictors.append(one_predictor_model())
+    opt = Adadelta(lr=0.05)
+    predictors[i].compile(optimizer=opt, loss='binary_crossentropy', metrics=['fmeasure'])
+    #predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
+    history = train(predictors[i],train_index,val_index, "axial", i, name=i)
+    runs.append(history.history)
 
 with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
         pickle.dump(runs, fp)
@@ -388,7 +387,7 @@ candidate_mask = np.logical_and(FLAIR_mask, WM_mask)
 
 
 # test model
-for i in range(1):
+for i in range(4):
     #test(predictors[i],"axial",[5],i)
     probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
     segmantation,prob_map = predict_image(predictors[i],vol,candidate_mask)
