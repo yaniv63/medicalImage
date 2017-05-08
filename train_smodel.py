@@ -186,6 +186,14 @@ def test(model,patch_type,testList,name):
     confusion_mat = calc_confusion_mat(model, test_samples, test_labels, "individual test ")
     calc_dice(confusion_mat, "individual test ")
 
+def post_process(seg, thresh):
+    from scipy import ndimage
+    connected_comp = ndimage.generate_binary_structure(3, 2) * 1
+    label_weight = 30
+    connected_comp[1, 1, 1] = label_weight
+    res = ndimage.convolve(seg, connected_comp, mode='constant', cval=0.)
+    return (res > (thresh + label_weight)) * 1
+
 def probability_plot(model, vol,fold,threshold=0.5,slice = 95):
     import itertools
 
@@ -380,6 +388,7 @@ for i in range(4):
     #test(predictors[i],"axial",[5],i)
     probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
     segmantation,prob_map = predict_image(predictors[i],vol,candidate_mask)
+    segmantation = post_process(segmantation,9)
     with open(run_dir + 'segmantation{}.npy'.format(i), 'wb') as fp, open(run_dir + 'prob_plot{}.npy'.format(i), 'wb') as fp1:
         np.save(fp, segmantation)
         np.save(fp1, prob_map)
