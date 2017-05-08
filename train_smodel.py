@@ -15,6 +15,7 @@ Created on Mon Dec 26 16:42:11 2016
 """
 import numpy as np
 import nibabel as nb
+np.random.seed(42)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -102,7 +103,7 @@ def generator(positive_list,negative_list,data,batch_size=256,patch_width = 16,o
             negative_batch = negative_list_np[batch * batch_pos:(batch + 1) * batch_pos]
             negative_batch_patches = [[extract_axial(data[person][time], k, j, i,patch_width),0] for person, time, i, j, k in
                                       negative_batch]
-            final_batch = np.random.permutation(positive_batch_patches + negative_batch_patches)
+            final_batch = positive_batch_patches + negative_batch_patches #np.random.permutation(positive_batch_patches + negative_batch_patches)
             samples =  [patches for patches,_ in final_batch]
             samples = np.expand_dims(samples, 1)
 
@@ -330,19 +331,19 @@ logger = get_logger(run_dir)
 
 # ######## train model
 logger.info("use adadelta")
-person_indices =np.array([1,2,3,4])
-kf = KFold(n_splits=4)
+train_index = [1,2,4]
+val_index = [3]
+i=0
 runs = []
 predictors = []
 
-for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-    logger.info("Train: {} Val {} ".format( person_indices[train_index],person_indices[val_index]) )
-    predictors.append(one_predictor_model())
-    opt = Adadelta(lr=0.05)
-    predictors[i].compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    #predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
-    history = train(predictors[i],person_indices[train_index],person_indices[val_index], "axial", i, name=i)
-    runs.append(history.history)
+logger.info("Train: {} Val {} ".format(train_index ,val_index) )
+predictors.append(one_predictor_model())
+opt = Adadelta(lr=0.05)
+predictors[i].compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+#predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
+history = train(predictors[i],train_index,val_index, "axial", i, name=i)
+runs.append(history.history)
 
 with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
         pickle.dump(runs, fp)
@@ -384,7 +385,7 @@ candidate_mask = np.logical_and(FLAIR_mask, WM_mask)
 
 
 # test model
-for i in range(4):
+for i in range(1):
     #test(predictors[i],"axial",[5],i)
     probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
     segmantation,prob_map = predict_image(predictors[i],vol,candidate_mask)
