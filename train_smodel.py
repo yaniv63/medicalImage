@@ -14,8 +14,8 @@ Created on Mon Dec 26 16:42:11 2016
 @author: yaniv
 """
 import numpy as np
+#np.random.seed(42)
 import nibabel as nb
-np.random.seed(42)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -92,18 +92,18 @@ def generator(positive_list,negative_list,data,batch_size=256,patch_width = 16,o
     batch_num = len(positive_list)/batch_pos
     while True:
         #modify list to divide by batch_size
-        # positive_list_np = np.random.permutation(positive_list)
-        # positive_list_np = positive_list_np[:batch_num*batch_pos]
-        # negative_list_np = np.random.permutation(negative_list)
-        positive_list_np = positive_list[:batch_num*batch_pos]
-        negative_list_np = negative_list
+        positive_list_np = np.random.permutation(positive_list)
+        positive_list_np = positive_list_np[:batch_num*batch_pos]
+        negative_list_np = np.random.permutation(negative_list)
+        # positive_list_np = positive_list[:batch_num*batch_pos]
+        # negative_list_np = negative_list
         for batch in range(batch_num):
             positive_batch = positive_list_np[batch*batch_pos:(batch+1)*batch_pos]
             positive_batch_patches = [[extract_axial(data[person][time],k,j,i,patch_width),1] for person,time,i,j,k in positive_batch]
             negative_batch = negative_list_np[batch * batch_pos:(batch + 1) * batch_pos]
             negative_batch_patches = [[extract_axial(data[person][time], k, j, i,patch_width),0] for person, time, i, j, k in
                                       negative_batch]
-            final_batch = positive_batch_patches + negative_batch_patches #np.random.permutation(positive_batch_patches + negative_batch_patches)
+            final_batch =  np.random.permutation(positive_batch_patches + negative_batch_patches) #positive_batch_patches + negative_batch_patches
             samples =  [patches for patches,_ in final_batch]
             samples = np.expand_dims(samples, 1)
 
@@ -162,6 +162,9 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
     logger.debug("creating train & val generators")
 
     train_images,pos_train_list,neg_train_list = load_data(PersonTrainList)
+    # pos_train_list = np.random.permutation(pos_train_list)
+    # neg_train_list = np.random.permutation(neg_train_list)
+
     train_generator = generator(pos_train_list, neg_train_list, train_images)
 
     val_images,pos_val_list,neg_val_list = load_data(PersonValList)
