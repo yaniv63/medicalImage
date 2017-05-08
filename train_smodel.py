@@ -148,8 +148,8 @@ def create_callbacks(name,fold):
     # stop_train_callback1 = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=1, mode='auto')
     # stop_train_callback2 = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5, verbose=1, mode='auto')
     print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
-    logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
-                 format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
+    logger.debug("epoch {} loss {:.5f} fmeasure {:.5f} val_loss {:.5f} val_fmeasure{:.5f} ".
+                 format(epoch, logs['loss'], logs['fmeasure'], logs['val_loss'],
                         logs['val_fmeasure'])))
     mycallbacks = [print_logs,save_weights]# stop_train_callback1, stop_train_callback2]
     return mycallbacks
