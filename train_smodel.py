@@ -29,7 +29,7 @@ import pickle
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import KFold
 from collections import defaultdict
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score ,roc_auc_score
 import scipy.ndimage.morphology as mrph
 
 
@@ -397,5 +397,6 @@ for i in range(1):
         np.save(fp, segmantation)
         np.save(fp1, prob_map)
     test_seg = segmantation.flatten().tolist()
-    logger.info("predictor {} f1 is {} , accuracy is {} ".format
-                    (i,f1_score(test_labels, test_seg), accuracy_score(test_labels, test_seg)))
+    logger.info("predictor {} f1 is {} , accuracy is {} auc is {} ".format
+                    (i,f1_score(test_labels, test_seg), accuracy_score(test_labels, test_seg),roc_auc_score(test_labels,test_seg)))
+
