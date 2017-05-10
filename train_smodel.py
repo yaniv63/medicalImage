@@ -172,7 +172,7 @@ def train(model,PersonTrainList,PersonValList,patch_type,fold_num,name,batch_siz
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=30, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=50, callbacks=callbacks,
                                       validation_data=val_set)
     confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
@@ -346,6 +346,7 @@ for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
     #predictors[i].load_weights(run_dir + 'model_{}_fold_{}.h5'.format(i,i))
     history = train(predictors[i],person_indices[train_index] ,person_indices[val_index], "axial", i, name=i)
     runs.append(history.history)
+    break
 
 with open(run_dir + 'cross_valid_stats.lst', 'wb') as fp:
         pickle.dump(runs, fp)
@@ -387,7 +388,7 @@ candidate_mask = np.logical_and(FLAIR_mask, WM_mask)
 
 
 # test model
-for i in range(4):
+for i in range(1):
     #test(predictors[i],"axial",[5],i)
     probability_plot(predictors[i],vol,i,slice=80,threshold=0.8)
     segmantation,prob_map = predict_image(predictors[i],vol,candidate_mask)
