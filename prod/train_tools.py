@@ -1,6 +1,10 @@
 import numpy as np
 from keras.callbacks import  LambdaCallback, ModelCheckpoint
 import logging
+from random import shuffle
+from itertools import product
+from collections import defaultdict
+
 
 from paths import get_run_dir
 from create_patches import extract_patch
@@ -31,10 +35,35 @@ def generator(positive_list,negative_list,data,view,batch_size=256,patch_width =
         if only_once:
             break
 
-def combined_generator(positive_list,negative_list,data,batch_size=256,patch_width = 16,only_once=False):
+def combined_generator(positive_list,negative_list,data,contrasts,views,batch_size=256,w = 16,only_once=False):
+    # while True:
+    #     a = np.ones(shape=(256,32,32))
+    #     b = np.ones(shape=(256,))
+    #     yield (a,b)
     half_batch,batch_num = calc_batch_params(positive_list,batch_size)
     while True:
+        shuffle(positive_list)
+        positive_list_np = positive_list[:batch_num * half_batch]
+        shuffle(negative_list)
+        for batch in range(batch_num):
+            samples = []
+            positive_batch = [(x,1) for x in positive_list_np[batch*half_batch:(batch+1)*half_batch]]
+            negative_batch = [(x,0) for x in negative_list[batch * half_batch:(batch + 1) * half_batch]]
+            mix_batch = positive_batch+negative_batch
+            shuffle(mix_batch)
+            patch_dict = defaultdict(list)
+            labels = []
+            for (person,time,i,j,k),label in mix_batch:
+                labels.append(label)
+                for contrast in contrasts:
+                    volume = data[person][time][contrast]
+                    for view in views:
+                        patch_dict[contrast+'_'+view].append(extract_patch(volume,view,(i,j,k),w))
+            for x, y in product(contrasts, views):
+                sample = np.array(patch_dict[x+'_'+y])
+                samples.append(np.expand_dims(sample,1))
 
+            yield (samples,labels)
 
 def calc_batch_params(patch_list,batch_size):
     half_batch = batch_size / 2
@@ -55,6 +84,17 @@ def aggregate_genrated_samples(pos_list,neg_list,data,view):
 
     return (np.array(samples), np.array(labels))
 
+
+def combined_aggregate_genrated_samples(pos_list,neg_list,data,contrast_list,view_list):
+    samples = []
+    labels = []
+    for batch_samples,batch_labels in combined_generator(pos_list,neg_list,data,contrast_list,view_list,only_once=True):
+        if len(samples) == 0:
+            samples = batch_samples
+        else:
+            samples = [np.concatenate((samples[i], batch_samples[i])) for i in range(len(batch_samples))]
+        labels.extend(batch_labels)
+    return samples,labels
 
 def create_callbacks(name,fold):
     save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_fmeasure',

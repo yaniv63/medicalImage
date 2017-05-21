@@ -31,13 +31,17 @@ def load_data(person_list,contrast_type):
     images = load_images(person_list,contrast_type)
     return images,pos_list,neg_list
 
+def load_all_data(person_list, time_list, contrast_list):
+    pos_list,neg_list = load_patches_list(person_list)
+    images = load_all_images(person_list, time_list, contrast_list)
+    return images,pos_list,neg_list
 
-def load_all_images(person_list, time_list, type_list):
+def load_all_images(person_list, time_list, contrast_list):
     image_list = multi_dimensions(3)
-    indexes = product(person_list, time_list, type_list)
-    for person, time, type in indexes:
-        image_list[person][time][type] = np.load(
-            Src_Path + Data_Path + "Person0{}_Time0{}_{}.npy".format(person, time, type))
+    indexes = product(person_list, time_list, contrast_list)
+    for person, time, contrast in indexes:
+        image_list[person][time][contrast] = np.load(
+            Src_Path + Data_Path + "Person0{}_Time0{}_{}.npy".format(person, time, contrast))
     return image_list
 
 # def load_patches_list_tr(person_list):
