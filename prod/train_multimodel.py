@@ -5,19 +5,19 @@ Created on Wed Dec 21 19:32:39 2016
 @author: yaniv
 """
 # create logger
-from logging_tools import get_logger
 from paths import *
+from prod.logging_tools import get_logger
+
 run_dir = get_run_dir()
 logger = get_logger(run_dir)
 
 from keras.optimizers import Adadelta
 import pickle
 from  itertools import product
-from sklearn.model_selection import KFold
 
-from two_predictors_combined import one_predictor_model,n_predictors_combined_model
+from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
-    ,combined_aggregate_genrated_samples,calc_epoch_size
+    , calc_epoch_size
 from data_containers import load_data,load_all_data
 from metrics import calc_confusion_mat,calc_dice
 from plotting_tools import *
