@@ -49,13 +49,13 @@ def plot_training(logs,view_type,contrast_type):
     colors = ['b','y','r','g']
     for j,history in enumerate(logs):
         for i in [0,2,4]:
-            params = {'figure_name': metrics[i], 'y':history[metrics[i]],'title':'model_{}_{} '.format(view_type,contrast_type) + metrics[i],
+            params = {'figure_name': metrics[i]+view_type+contrast_type, 'y':history[metrics[i]],'title':'model_{}_{} '.format(view_type,contrast_type) + metrics[i],
                       'ylabel':metrics[i],'xlabel':'epoch',"line_att":dict(linestyle=linestyles[0],color=colors[j])}
             generic_plot(params)
-            params = {'figure_name': metrics[i], 'y':history[metrics[i+1]],"line_att":dict(linestyle=linestyles[1],color=colors[j])}
+            params = {'figure_name': metrics[i]+view_type+contrast_type, 'y':history[metrics[i+1]],"line_att":dict(linestyle=linestyles[1],color=colors[j])}
             generic_plot(params)
     for i in [0, 2, 4]:
-        params = {'figure_name': metrics[i], 'legend': ['train', 'validation']*len(logs),
+        params = {'figure_name': metrics[i]+view_type+contrast_type, 'legend': ['train', 'validation']*len(logs),
                   'save_file': run_dir + 'model_{}_{}_'.format(view_type,contrast_type) + metrics[i] + '.png'}
         generic_plot(params)
 

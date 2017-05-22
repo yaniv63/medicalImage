@@ -47,6 +47,12 @@ def load_image(person, time, contrast):
     return np.load(
             Src_Path + Data_Path + "Person0{}_Time0{}_{}.npy".format(person, time, contrast))
 
+def load_contrasts(person, time,contrast_list):
+    contrasts = {}
+    for contrast in contrast_list:
+        contrasts[contrast] = load_image(person,time,contrast)
+    return contrasts
+
 # def load_patches_list_tr(person_list):
 #     import pickle
 #     with open(patches + "tempP", 'rb') as fp1, \

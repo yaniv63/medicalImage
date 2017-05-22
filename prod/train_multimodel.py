@@ -104,3 +104,5 @@ for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
 history = train_combined(combined_model, [1, 2, 4], [3], MR_modalities, view_list, "combined")
 with open(run_dir + 'cross_valid_stats_multimodel.lst', 'wb') as fp:
     pickle.dump(history, fp)
+
+combined_model.save_weights(weight_path+'combined_weights.h5')
