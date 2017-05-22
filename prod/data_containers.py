@@ -1,7 +1,8 @@
 import numpy as np
+import nibabel as nb
 from collections import defaultdict
 from itertools import product
-from paths import Src_Path,Data_Path,patches
+from paths import Src_Path,Data_Path,patches,Labels_Path
 
 def multi_dimensions(n, type=None):
     if n <= 0:
@@ -53,22 +54,9 @@ def load_contrasts(person, time,contrast_list):
         contrasts[contrast] = load_image(person,time,contrast)
     return contrasts
 
-# def load_patches_list_tr(person_list):
-#     import pickle
-#     with open(patches + "tempP", 'rb') as fp1, \
-#             open(patches + "tempN", 'rb') as fp2:
-#             positive_list_np = np.array(pickle.load(fp1))
-#             negative_list_np = np.array(pickle.load(fp2))
-#     return positive_list_np,negative_list_np
-#
-# def load_patches_list_val(person_list):
-#     import pickle
-#     with open(patches + "tempP_v", 'rb') as fp1, \
-#             open(patches + "tempN_v", 'rb') as fp2:
-#             positive_list_np = np.array(pickle.load(fp1))
-#             negative_list_np = np.array(pickle.load(fp2))
-#     return positive_list_np,negative_list_np
-# def load_data_v(person_list,contrast_type):
-#     pos_list,neg_list = load_patches_list_val(person_list)
-#     images = load_images(person_list,contrast_type)
-#     return images,pos_list,neg_list
+def load_lables(person,time,doc_num):
+    path = Src_Path + Labels_Path + "training0{}_0{}_mask{}.nii".format(person,time,doc_num)
+    labels = nb.load(path).get_data()
+    labels = labels.T
+    labels = np.rot90(labels, 2, axes=(1, 2))
+    return labels
