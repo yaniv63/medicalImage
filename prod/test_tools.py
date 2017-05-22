@@ -21,7 +21,7 @@ def patch_image(images, mask,contrasts, views,  vol_shape, output_q, w=16):
     z = np.linspace(0, vol_shape[0] - 1, vol_shape[0], dtype='int')
     logger.info("start create patch process ")
     logger.info("patches for model")
-    for i in z:
+    for i in range(25):
         index_list = []
         samples = []
         patch_dict = defaultdict(list)
@@ -38,8 +38,10 @@ def patch_image(images, mask,contrasts, views,  vol_shape, output_q, w=16):
                 samples.append(np.expand_dims(sample,1))
             output_q.put((index_list, samples))
             logger.info("put layer {}".format(i))
+    output_q.put((None,None))
+    output_q.close()
     logger.info("finish create patch process ")
-    output_q.put((-1,-1))
+
 
 
 def model_pred(weight_dir,n_predictors,input_q,output_q):
@@ -49,14 +51,18 @@ def model_pred(weight_dir,n_predictors,input_q,output_q):
     logger.info("start predict with model")
     while True:
         indexes,patches =input_q.get()
-        curr_layer = indexes[0][0]
-        if curr_layer == -1:
+        if indexes == None:
+            input_q.task_done()
             break
+        curr_layer = indexes[0][0]
         predictions = model.predict(patches)
         output_q.put((indexes,predictions))
         logger.info("predicted layer {} ".format(curr_layer))
+        input_q.task_done()
+    output_q.put((indexes, patches))
+    output_q.close()
     logger.info("finish predict process")
-    output_q.put((-1,-1))
+
 
 
 def get_segmentation(vol_shape, input_q, output_queue, threshold=0.5):
@@ -65,16 +71,20 @@ def get_segmentation(vol_shape, input_q, output_queue, threshold=0.5):
     segmentation = np.zeros(vol_shape, dtype='uint8')
     while True:
         indexes,pred = input_q.get()
-        curr_layer = indexes[0][0]
-        if curr_layer == -1:
+        if indexes == None:
+            input_q.task_done()
             break
+        curr_layer = indexes[0][0]
         for index, (i, j, k,) in enumerate(indexes):
             if pred[index] > threshold:
                 segmentation[i, j, k] = 1
             prob_plot[i, j, k] = pred[index]
         logger.info("segmented layer {}".format(curr_layer))
-    logger.info("finish segmentation process")
+        input_q.task_done()
     output_queue.put((segmentation,prob_plot))
+    output_queue.close()
+    logger.info("finish segmentation process")
+
 
 def load_model(weight_dir,n_predictors):
     from multi_predictors_combined import n_predictors_combined_model
