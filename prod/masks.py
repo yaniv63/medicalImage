@@ -23,25 +23,29 @@ def load_wm_masks(person_list, time_list):
     wm_list = multi_dimensions(2)
     indexes = product(person_list, time_list)
     for person, time in indexes:
-        wm_list[person][time] = np.load(Src_Path + WM_path + "Person0{}_Time0{}.npy".format(person, time))
+        wm_list[person][time] = load_wm_mask(person,time)
     return wm_list
 
+def load_wm_mask(person,time):
+    return np.load(Src_Path + WM_path + "Person0{}_Time0{}.npy".format(person, time))
 
 def create_image_masks(wm_list, image_list, person_list, time_list):
-    sel = binary_disk(2)
     masks_list = multi_dimensions(2)
     indexes = product(person_list, time_list)
     for person, time in indexes:
-        WM_dilated = mrph.filters.maximum_filter(wm_list[person][time], footprint=sel)
-
-        # apply thresholds
-        FLAIR_mask = image_list[person][time]['FLAIR'] > FLAIR_th
-        WM_mask = WM_dilated > WM_prior_th
-
-        # final mask: logical AND
-        masks_list[person][time] = np.logical_and(FLAIR_mask, WM_mask)
+        masks_list[person][time] = get_combined_mask(wm_list[person][time], image_list[person][time]['FLAIR'])
     return masks_list
 
+def get_combined_mask(wm_mask, flair_image):
+    sel = binary_disk(2)
+    WM_dilated = mrph.filters.maximum_filter(wm_mask, footprint=sel)
+    # apply thresholds
+    FLAIR_mask = flair_image > FLAIR_th
+    WM_mask = WM_dilated > WM_prior_th
+
+    # final mask: logical AND
+    mask = np.logical_and(FLAIR_mask, WM_mask)
+    return mask
 
 def is_masks_positive(mask_list, person, time_list, index):
     mask_list = map(lambda time: mask_list[person][time][index[0], index[1], index[2]], time_list)

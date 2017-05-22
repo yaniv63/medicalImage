@@ -23,7 +23,7 @@ def load_images(person_list, contrast_type):
     image_list =defaultdict(dict)
     for person in person_list:
         for time in range(1,5):
-            image_list[person][time] = np.load(Src_Path+Data_Path+"Person0{}_Time0{}_{}.npy".format(person,time,contrast_type))
+            image_list[person][time] = load_image(person, time, contrast_type)
     return image_list
 
 def load_data(person_list,contrast_type):
@@ -40,9 +40,12 @@ def load_all_images(person_list, time_list, contrast_list):
     image_list = multi_dimensions(3)
     indexes = product(person_list, time_list, contrast_list)
     for person, time, contrast in indexes:
-        image_list[person][time][contrast] = np.load(
-            Src_Path + Data_Path + "Person0{}_Time0{}_{}.npy".format(person, time, contrast))
+        image_list[person][time][contrast] = load_image(person, time, contrast)
     return image_list
+
+def load_image(person, time, contrast):
+    return np.load(
+            Src_Path + Data_Path + "Person0{}_Time0{}_{}.npy".format(person, time, contrast))
 
 # def load_patches_list_tr(person_list):
 #     import pickle

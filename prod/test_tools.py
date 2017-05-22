@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+import itertools
 
 from create_patches import extract_axial
 
@@ -17,7 +18,6 @@ def post_process(seg, thresh):
 
 
 def predict_image(model, vol,mask, threshold=0.5):
-    import itertools
 
     prob_plot = np.zeros(vol.shape, dtype='float16')
     segmentation = np.zeros(vol.shape, dtype='uint8')
