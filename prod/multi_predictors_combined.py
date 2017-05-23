@@ -14,19 +14,19 @@ def create_smodel(N_mod, img_rows, img_cols, index=0):
     smodel = Sequential(name='Seq_' + index)
     # 1x32x32 -> 24x14x14
     smodel.add(Convolution2D(24, 5, 5,
-                             input_shape=(N_mod, img_rows, img_cols), name='conv1_' + index,W_regularizer='l2'))  # 1x32x32 -> 24x28x28
+                             input_shape=(N_mod, img_rows, img_cols), name='conv1_' + index,W_regularizer='l2',b_regularizer='l2'))  # 1x32x32 -> 24x28x28
     smodel.add(LeakyReLU(name='leakyrelu1_' + index))
     smodel.add(MaxPooling2D(pool_size=(2, 2), name='maxpool1_' + index))  # 24x28x28 -> 24x14x14
     #smodel.add(Dropout(0.25, name='drop1_' + index))
 
     # 24x14x14 -> 32x6x6
-    smodel.add(Convolution2D(32, 3, 3, name='conv2_' + index))  # 24x14x14 -> 32x12x12
+    smodel.add(Convolution2D(32, 3, 3, name='conv2_' + index,W_regularizer='l2',b_regularizer='l2'))  # 24x14x14 -> 32x12x12
     smodel.add(LeakyReLU(name='leakyrelu2_' + index))
     smodel.add(MaxPooling2D(pool_size=(2, 2), name='maxpool2_' + index))  # 32x12x12 -> 32x6x6
     #smodel.add(Dropout(0.25, name='drop2_' + index))
 
     # 32x6x6 -> 48x4x4
-    smodel.add(Convolution2D(48, 3, 3, name='conv3_' + index))
+    smodel.add(Convolution2D(48, 3, 3, name='conv3_' + index,W_regularizer='l2',b_regularizer='l2'))
     smodel.add(LeakyReLU(name='leakyrelu3_' + index))
     #smodel.add(Dropout(0.25, name='drop3_' + index))
 
@@ -40,7 +40,7 @@ def create_smodel(N_mod, img_rows, img_cols, index=0):
 
 def one_predictor_model(N_mod = 1, img_rows = 32, img_cols = 32,index=0):
     predictor = create_smodel(N_mod,img_rows,img_cols,index)
-    predictor.add(Dense(1,activation='sigmoid',name='out{}'.format(index)))
+    predictor.add(Dense(1,activation='sigmoid',name='out{}'.format(index),W_regularizer='l2',b_regularizer='l2'))
     return predictor
 
 
@@ -108,7 +108,7 @@ def n_predictors_combined_model(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
         data.append(Input(shape=(N_mod, img_rows, img_cols),name='input{}'.format(i)))
         decisions.append(predictors[i](data[i]))
     merged = merge(decisions, mode='concat', concat_axis=1)
-    out = Dense(1, activation='sigmoid', weights=[init_weights, init_bias])(merged)
+    out = Dense(1, activation='sigmoid', weights=[init_weights, init_bias],W_regularizer='l2',b_regularizer='l2')(merged)
     model = Model(input=data, output=out)
     return model
 
