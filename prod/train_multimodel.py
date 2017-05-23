@@ -11,7 +11,7 @@ from prod.logging_tools import get_logger
 run_dir = get_run_dir()
 logger = get_logger(run_dir)
 
-from keras.optimizers import Adadelta
+from keras.optimizers import Adadelta,SGD
 import pickle
 from  itertools import product
 
@@ -39,7 +39,7 @@ def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,n
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=1, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
                                       validation_data=val_set)
     confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
@@ -59,7 +59,7 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     logger.info("training individual model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=1, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=50, callbacks=callbacks,
                                   validation_data=val_generator,nb_val_samples=val_size)
     # confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(0))
     # calc_dice(confusion_mat, "individual val {}".format(0))
@@ -69,17 +69,17 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
 # ######## train model
 logger.debug("start script")
 MR_modalities = ['FLAIR']#, 'T2']#, 'MPRAGE', 'PD']
-view_list = ['axial', 'coronal']#, 'sagittal']
+view_list = ['axial', 'coronal', 'sagittal']
 image_types = product(MR_modalities,view_list)
-optimizer = Adadelta(lr=0.05)
+optimizer = SGD(lr=0.01,nesterov=True)
+
+person_indices = np.array([1, 2, 3, 4])
+train_index = [1, 2, 3];val_index = [0]
 
 for contrast_type,view_type in image_types:
-    # logger.info("training {} {} model".format(contrast_type,view_type))
-    person_indices =np.array([1,2,3,4])
     # kf = KFold(n_splits=4)
     runs = []
     predictors = []
-    train_index = [0,1,2];val_index = [3]
 
     #for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
     logger.info("Train: {} Val {} ".format( person_indices[train_index],person_indices[val_index]) )
@@ -101,7 +101,7 @@ layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
 for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
     layer_dict["Seq_{}".format(i)].load_weights(run_dir + 'model_{}_{}_{}.h5'.format(contrast,view,0), by_name=True)
 
-history = train_combined(combined_model, [1, 2, 4], [3], MR_modalities, view_list, "combined")
+history = train_combined(combined_model, person_indices[train_index], person_indices[val_index], MR_modalities, view_list, "combined")
 with open(run_dir + 'cross_valid_stats_multimodel.lst', 'wb') as fp:
     pickle.dump(history, fp)
 

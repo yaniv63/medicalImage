@@ -1,5 +1,5 @@
 import numpy as np
-from keras.callbacks import  LambdaCallback, ModelCheckpoint
+from keras.callbacks import  LambdaCallback, ModelCheckpoint,ReduceLROnPlateau
 import logging
 from random import shuffle
 from itertools import product
@@ -104,5 +104,6 @@ def create_callbacks(name,fold):
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
                  format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
                         logs['val_fmeasure'])))
-    mycallbacks = [print_logs,save_weights]
+    lr_reduce = ReduceLROnPlateau(verbose=1)
+    mycallbacks = [print_logs,save_weights,lr_reduce]
     return mycallbacks
