@@ -6,8 +6,8 @@ Created on Mon Dec 26 16:42:11 2016
 """
 from keras.layers import Dense,Input,merge, Convolution2D, LeakyReLU, MaxPooling2D, Dropout, Flatten
 from keras.models import Model, Sequential
+from keras.regularizers import l2
 import numpy as np
-
 
 def create_smodel(N_mod, img_rows, img_cols, index=0):
     index = str(index)
@@ -108,7 +108,8 @@ def n_predictors_combined_model(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
         data.append(Input(shape=(N_mod, img_rows, img_cols),name='input{}'.format(i)))
         decisions.append(predictors[i](data[i]))
     merged = merge(decisions, mode='concat', concat_axis=1)
-    out = Dense(1, activation='sigmoid', weights=[init_weights, init_bias],W_regularizer='l2',b_regularizer='l2')(merged)
+    out = Dense(1, activation='sigmoid', weights=[init_weights, init_bias],W_regularizer=l2(0.1),b_regularizer=l2(0.1))(merged)
+
     model = Model(input=data, output=out)
     return model
 
