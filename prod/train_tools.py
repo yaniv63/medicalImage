@@ -36,21 +36,17 @@ def generator(positive_list,negative_list,data,view,batch_size=256,patch_width =
             break
 
 def combined_generator(positive_list,negative_list,data,contrasts,views,batch_size=256,w = 16,only_once=False):
-    # while True:
-    #     a = np.ones(shape=(256,32,32))
-    #     b = np.ones(shape=(256,))
-    #     yield (a,b)
     half_batch,batch_num = calc_batch_params(positive_list,batch_size)
     while True:
-        shuffle(positive_list)
-        positive_list_np = positive_list[:batch_num * half_batch]
-        shuffle(negative_list)
+        positive_list_np = np.random.permutation(positive_list).tolist()
+        positive_list_np = positive_list_np[:batch_num * half_batch]
+        negative_list_np = np.random.permutation(negative_list).tolist()
         for batch in range(batch_num):
             samples = []
             positive_batch = [(x,1) for x in positive_list_np[batch*half_batch:(batch+1)*half_batch]]
-            negative_batch = [(x,0) for x in negative_list[batch * half_batch:(batch + 1) * half_batch]]
+            negative_batch = [(x,0) for x in negative_list_np[batch * half_batch:(batch + 1) * half_batch]]
             mix_batch = positive_batch+negative_batch
-            shuffle(mix_batch)
+            mix_batch = np.random.permutation(mix_batch).tolist()
             patch_dict = defaultdict(list)
             labels = []
             for (person,time,i,j,k),label in mix_batch:
@@ -62,7 +58,6 @@ def combined_generator(positive_list,negative_list,data,contrasts,views,batch_si
             for x, y in product(contrasts, views):
                 sample = np.array(patch_dict[x+'_'+y])
                 samples.append(np.expand_dims(sample,1))
-
             yield (samples,labels)
 
 def calc_batch_params(patch_list,batch_size):
