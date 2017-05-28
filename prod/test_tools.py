@@ -21,7 +21,7 @@ def patch_image(images, mask,contrasts, views,  vol_shape, output_q, w=16):
     z = np.linspace(0, vol_shape[0] - 1, vol_shape[0], dtype='int')
     logger.info("start create patch process ")
     logger.info("patches for model")
-    for i in range(25):
+    for i in z:
         index_list = []
         samples = []
         patch_dict = defaultdict(list)
@@ -86,11 +86,15 @@ def get_segmentation(vol_shape, input_q, output_queue, threshold=0.5):
     logger.info("finish segmentation process")
 
 
-def load_model(weight_dir,n_predictors):
+def load_unimodel(weight_dir):
     from multi_predictors_combined import n_predictors_combined_model
     from keras.optimizers import Adadelta
 
-    optimizer = Adadelta(lr=0.05)
+def load_model(weight_dir,n_predictors):
+    from multi_predictors_combined import n_predictors_combined_model
+    from keras.optimizers import SGD
+
+    optimizer = SGD(lr=0.01,nesterov=True)
     combined_model = n_predictors_combined_model(n=n_predictors)
     combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     combined_model.load_weights(weight_dir + 'combined_weights.h5')
