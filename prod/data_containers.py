@@ -72,6 +72,3 @@ def create_ROI_list(input_list):
         negative_list.extend(negative)
     return np.array(positive_list),np.array(negative_list)
 
-a = [(2,3),(2,4),(3,1)]
-pos,neg  = create_ROI_list(a)
-print 'hello'
