@@ -23,6 +23,8 @@ from metrics import calc_confusion_mat,calc_dice
 from plotting_tools import *
 
 
+temp_dir = "/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/run5-fix_regulariz/"
+
 def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,name,batch_size=256):
     logger.debug("training model {} fold {}".format(name,fold_num))
     logger.debug("creating callbacks")
@@ -59,7 +61,7 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     logger.info("training individual model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=50, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=5, callbacks=callbacks,
                                   validation_data=val_generator,nb_val_samples=val_size)
     # confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(0))
     # calc_dice(confusion_mat, "individual val {}".format(0))
@@ -68,13 +70,16 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
 
 # ######## train model
 logger.debug("start script")
-MR_modalities = ['FLAIR']#, 'T2']#, 'MPRAGE', 'PD']
-view_list = ['axial', 'coronal', 'sagittal']
+MR_modalities = ['FLAIR']#['FLAIR', 'T2', 'MPRAGE', 'PD']
+view_list = ['axial','coronal', 'sagittal']#['axial', 'coronal', 'sagittal']
 image_types = product(MR_modalities,view_list)
 optimizer = SGD(lr=0.01,nesterov=True)
 
-person_indices = np.array([1, 2, 3, 4])
-train_index = [1, 2, 3];val_index = [0]
+# person_indices = np.array([5, 2, 3, 4])
+# train_index = [0,1, 3];val_index = [2]
+train_d =[(5,2),(5,3),(5,4),(2,1),(2,4),(4,2),(4,3),(4,4)]
+val_d = [(3,2),(3,3),(3,4),(3,5)]
+test_d = [(1,2),(1,3),(1,4)]
 
 for contrast_type,view_type in image_types:
     # kf = KFold(n_splits=4)
@@ -82,10 +87,10 @@ for contrast_type,view_type in image_types:
     predictors = []
 
     #for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-    logger.info("Train: {} Val {} ".format( person_indices[train_index],person_indices[val_index]) )
+    logger.info("Train: {} Val {} ".format( train_d,val_d) )
     predictors.append(one_predictor_model())
     predictors[0].compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    history = train(predictors[0],person_indices[train_index],person_indices[val_index],view_type,contrast_type, 0, name="{}_{}".format(contrast_type,view_type))
+    history = train(predictors[0],train_d,val_d,view_type,contrast_type, 0, name="{}_{}".format(contrast_type,view_type))
     runs.append(history.history)
 
 
@@ -99,9 +104,11 @@ combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=
 layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
 
 for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
-    layer_dict["Seq_{}".format(i)].load_weights(run_dir + 'model_{}_{}_{}.h5'.format(contrast,view,0), by_name=True)
+    a = run_dir + 'model_{}_{}_fold_{}.h5'.format(contrast,view,0)
+    layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
+    layer_dict["Seq_{}".format(i)].trainable = False
 
-history = train_combined(combined_model, person_indices[train_index], person_indices[val_index], MR_modalities, view_list, "combined")
+history = train_combined(combined_model, train_d, val_d, MR_modalities, view_list, "combined")
 with open(run_dir + 'cross_valid_stats_multimodel.lst', 'wb') as fp:
     pickle.dump(history, fp)
 
