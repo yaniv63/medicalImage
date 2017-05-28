@@ -15,8 +15,8 @@ from test_tools import model_pred,patch_image,get_segmentation
 contrasts = ['FLAIR']#, 'T2', 'MPRAGE', 'PD']
 views = ['axial', 'coronal', 'sagittal']
 test_person = 5
-test_time = 1
-
+test_time = 2
+test_unimodel =False
 
 #load test
 test_images = load_contrasts(test_person, test_time, contrasts)
@@ -31,7 +31,10 @@ patch_q = JoinableQueue(BUF_SIZE)
 prediction_q =  JoinableQueue(BUF_SIZE)
 seg_q =  JoinableQueue(1)
 patch_p = Process(target=patch_image, args=(test_images, mask,contrasts, views, vol_shape, patch_q),name='patcher')
-model_p = Process(target=model_pred,args=(weight_path,len(contrasts)*len(views),patch_q,prediction_q),name='predictor')
+if test_unimodel:
+    model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,1,True),name='predictor')
+else:
+    model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,len(contrasts)*len(views)),name='predictor')
 seg_p = Process(target=get_segmentation,args=(vol_shape, prediction_q, seg_q),name='segmentor')
 process_list = [patch_p, model_p, seg_p]
 for i in process_list:

@@ -44,10 +44,13 @@ def patch_image(images, mask,contrasts, views,  vol_shape, output_q, w=16):
 
 
 
-def model_pred(weight_dir,n_predictors,input_q,output_q):
+def model_pred(weight_dir,input_q,output_q,n_predictors=3,unimodel=False):
     logger.info("start predict process")
     logger.info("loading model")
-    model = load_model(weight_dir,n_predictors)
+    if unimodel:
+        model = load_unimodel(weight_dir)
+    else:
+        model = load_model(weight_dir,n_predictors)
     logger.info("start predict with model")
     while True:
         indexes,patches =input_q.get()
@@ -87,8 +90,15 @@ def get_segmentation(vol_shape, input_q, output_queue, threshold=0.5):
 
 
 def load_unimodel(weight_dir):
-    from multi_predictors_combined import n_predictors_combined_model
-    from keras.optimizers import Adadelta
+    from multi_predictors_combined import one_predictor_model
+    from keras.optimizers import SGD
+    optimizer = SGD(lr=0.01, nesterov=True)
+
+    model = one_predictor_model()
+    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    model.load_weights(weight_dir + 'combined_weights.h5')
+    return model
+
 
 def load_model(weight_dir,n_predictors):
     from multi_predictors_combined import n_predictors_combined_model
