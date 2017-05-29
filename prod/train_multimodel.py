@@ -61,7 +61,7 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     logger.info("training individual model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=5, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=300, callbacks=callbacks,
                                   validation_data=val_generator,nb_val_samples=val_size)
     # confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(0))
     # calc_dice(confusion_mat, "individual val {}".format(0))
@@ -77,9 +77,10 @@ optimizer = SGD(lr=0.01,nesterov=True)
 
 # person_indices = np.array([5, 2, 3, 4])
 # train_index = [0,1, 3];val_index = [2]
-train_d =[(5,2),(5,3),(5,4),(2,1),(2,4),(4,2),(4,3),(4,4)]
-val_d = [(3,2),(3,3),(3,4),(3,5)]
-test_d = [(1,2),(1,3),(1,4)]
+train_d =[(5,2),(5,3),(5,4),(2,1),(2,4),(4,2),(4,3),(4,4),(5,1),(2,3),(2,2),(4,1)]
+val_d = [(3,2),(3,3),(3,4),(3,5),(3,1)]
+test_d = [(1,2),(1,3),(1,4),(1,1)]
+
 
 for contrast_type,view_type in image_types:
     # kf = KFold(n_splits=4)
