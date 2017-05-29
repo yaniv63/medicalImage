@@ -15,9 +15,8 @@ def multi_dimensions(n, type=None):
 
 def load_images(person_list, contrast_type):
     image_list =defaultdict(dict)
-    for person in person_list:
-        for time in range(1,5):
-            image_list[person][time] = load_image(person, time, contrast_type)
+    for (person,time) in person_list:
+        image_list[person][time] = load_image(person, time, contrast_type)
     return image_list
 
 def load_data(person_list,contrast_type):
@@ -25,15 +24,15 @@ def load_data(person_list,contrast_type):
     images = load_images(person_list,contrast_type)
     return images,pos_list,neg_list
 
-def load_all_data(person_list, time_list, contrast_list):
+def load_all_data(person_list, contrast_list):
     pos_list,neg_list = create_ROI_list(person_list)
-    images = load_all_images(person_list, time_list, contrast_list)
+    images = load_all_images(person_list, contrast_list)
     return images,pos_list,neg_list
 
-def load_all_images(person_list, time_list, contrast_list):
+def load_all_images(person_list, contrast_list):
     image_list = multi_dimensions(3)
-    indexes = product(person_list, time_list, contrast_list)
-    for person, time, contrast in indexes:
+    indexes = product(person_list, contrast_list)
+    for (person, time), contrast in indexes:
         image_list[person][time][contrast] = load_image(person, time, contrast)
     return image_list
 

@@ -51,10 +51,10 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
 
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
-    train_images,positive_list, negative_list = load_all_data(PersonTrainList,range(1,5),contrast_list)
+    train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
     train_generator = combined_generator(positive_list, negative_list, train_images,contrast_list,view_list)
     logger.info("after tr")
-    val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,range(1,5),contrast_list)
+    val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     #val_set = combined_aggregate_genrated_samples(pos_val_list, neg_val_list, val_images, contrast_list,view_list)
     val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
     logger.info("after val")
@@ -92,7 +92,6 @@ for contrast_type,view_type in image_types:
     predictors[0].compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train(predictors[0],train_d,val_d,view_type,contrast_type, 0, name="{}_{}".format(contrast_type,view_type))
     runs.append(history.history)
-
 
     with open(run_dir + 'cross_valid_stats{}_{}.lst'.format(view_type,contrast_type), 'wb') as fp:
             pickle.dump(runs, fp)
