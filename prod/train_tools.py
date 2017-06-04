@@ -1,7 +1,7 @@
 import numpy as np
-from keras.callbacks import  LambdaCallback, ModelCheckpoint,ReduceLROnPlateau
+from keras.callbacks import  LambdaCallback, ModelCheckpoint,EarlyStopping
+from keras import backend as K
 import logging
-from random import shuffle
 from itertools import product
 from collections import defaultdict
 
@@ -12,6 +12,36 @@ from create_patches import extract_patch
 logger = logging.getLogger('root')
 run_dir =get_run_dir()
 
+
+class ReduceLR(EarlyStopping):
+
+    def __init__(self,name,fold,factor,*args,**kwargs):
+        super(ReduceLR,self).__init__(*args,**kwargs)
+        self.name = name
+        self.fold = fold
+        self.factor = factor
+
+    def on_epoch_end(self, epoch, logs={}):
+        current = logs.get(self.monitor)
+        if current is None:
+            logger.warn('Early stopping requires %s available!' %
+                          (self.monitor), RuntimeWarning)
+
+        if self.monitor_op(current - self.min_delta, self.best):
+            self.best = current
+            self.wait = 0
+        else:
+            self.wait += 1
+            if self.wait >= self.patience:
+                print self.model.get_weights()
+                logger.info('loading previous weights')
+                self.model.load_weights(run_dir + 'model_{}_fold_{}.h5'.format(self.name, self.fold))
+                print self.model.get_weights()
+                self.wait = 0
+                old_lr = float(K.get_value(self.model.optimizer.lr))
+                new_lr = old_lr * self.factor
+                K.set_value(self.model.optimizer.lr, new_lr)
+                logger.info('\nEpoch {}: reducing learning rate from  {} to {}'.format(epoch,old_lr, new_lr))
 
 def generator(positive_list,negative_list,data,view,batch_size=256,patch_width = 16,only_once=False):
     half_batch,batch_num = calc_batch_params(positive_list,batch_size)
@@ -99,6 +129,6 @@ def create_callbacks(name,fold):
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
                  format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
                         logs['val_fmeasure'])))
-    lr_reduce = ReduceLROnPlateau(verbose=1)
-    mycallbacks = [print_logs,save_weights,lr_reduce]
+    reducelr = ReduceLR(name,fold,0.2,patience=10)
+    mycallbacks = [print_logs,save_weights,reducelr]
     return mycallbacks

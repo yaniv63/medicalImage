@@ -13,11 +13,12 @@ from data_containers import load_contrasts,load_lables
 from test_tools import model_pred,patch_image,get_segmentation
 
 contrasts = ['FLAIR']#, 'T2', 'MPRAGE', 'PD']
-views = ['axial', 'coronal', 'sagittal']
-test_person = 5
-test_time = 2
-test_unimodel =False
+views =['sagittal']#, 'coronal', 'sagittal']
+test_person = 1
+test_time = 4
+test_unimodel =True
 
+weight_path = '/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/run9-3pred,train_on_5,200_epoch_300_epoch_combined/'
 #load test
 test_images = load_contrasts(test_person, test_time, contrasts)
 wm_mask = load_wm_mask(test_person,test_time)
@@ -31,10 +32,15 @@ patch_q = JoinableQueue(BUF_SIZE)
 prediction_q =  JoinableQueue(BUF_SIZE)
 seg_q =  JoinableQueue(1)
 patch_p = Process(target=patch_image, args=(test_images, mask,contrasts, views, vol_shape, patch_q),name='patcher')
+args = {}
 if test_unimodel:
-    model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,1,True),name='predictor')
+    args['contrast'] = contrasts[0]
+    args['view'] = views[0]
+    args['fold'] = 0
+    model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,args,True),name='predictor')
 else:
-    model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,len(contrasts)*len(views)),name='predictor')
+    args['n']=len(contrasts)*len(views)
+    model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,args),name='predictor')
 seg_p = Process(target=get_segmentation,args=(vol_shape, prediction_q, seg_q),name='segmentor')
 process_list = [patch_p, model_p, seg_p]
 for i in process_list:

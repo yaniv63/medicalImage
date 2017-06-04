@@ -44,13 +44,13 @@ def patch_image(images, mask,contrasts, views,  vol_shape, output_q, w=16):
 
 
 
-def model_pred(weight_dir,input_q,output_q,n_predictors=3,unimodel=False):
+def model_pred(weight_dir,input_q,output_q,args,unimodel=False):
     logger.info("start predict process")
     logger.info("loading model")
     if unimodel:
-        model = load_unimodel(weight_dir)
+        model = load_unimodel(weight_dir,args)
     else:
-        model = load_model(weight_dir,n_predictors)
+        model = load_model(weight_dir,args)
     logger.info("start predict with model")
     while True:
         indexes,patches =input_q.get()
@@ -89,23 +89,23 @@ def get_segmentation(vol_shape, input_q, output_queue, threshold=0.5):
     logger.info("finish segmentation process")
 
 
-def load_unimodel(weight_dir):
+def load_unimodel(weight_dir,args):
     from multi_predictors_combined import one_predictor_model
     from keras.optimizers import SGD
     optimizer = SGD(lr=0.01, nesterov=True)
 
     model = one_predictor_model()
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    model.load_weights(weight_dir + 'combined_weights.h5')
+    model.load_weights(weight_dir + 'model_{}_{}_fold_{}.h5'.format(args['contrast'],args['view'],args['fold']))
     return model
 
 
-def load_model(weight_dir,n_predictors):
+def load_model(weight_dir,args):
     from multi_predictors_combined import n_predictors_combined_model
     from keras.optimizers import SGD
 
     optimizer = SGD(lr=0.01,nesterov=True)
-    combined_model = n_predictors_combined_model(n=n_predictors)
+    combined_model = n_predictors_combined_model(n=args['n'])
     combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     combined_model.load_weights(weight_dir + 'combined_weights.h5')
     return combined_model

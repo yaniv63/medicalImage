@@ -73,7 +73,6 @@ logger.debug("start script")
 MR_modalities = ['FLAIR']#['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial','coronal', 'sagittal']#['axial', 'coronal', 'sagittal']
 image_types = product(MR_modalities,view_list)
-optimizer = SGD(lr=0.01,nesterov=True)
 
 # person_indices = np.array([5, 2, 3, 4])
 # train_index = [0,1, 3];val_index = [2]
@@ -90,6 +89,7 @@ for contrast_type,view_type in image_types:
     #for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
     logger.info("Train: {} Val {} ".format( train_d,val_d) )
     predictors.append(one_predictor_model())
+    optimizer = SGD(lr=0.01, nesterov=True)
     predictors[0].compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train(predictors[0],train_d,val_d,view_type,contrast_type, 0, name="{}_{}".format(contrast_type,view_type))
     runs.append(history.history)
@@ -98,7 +98,7 @@ for contrast_type,view_type in image_types:
             pickle.dump(runs, fp)
     plot_training(runs,view_type,contrast_type)
 
-
+optimizer = SGD(lr=0.01, nesterov=True)
 combined_model = n_predictors_combined_model(n=len(MR_modalities)*len(view_list))
 combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
 layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
