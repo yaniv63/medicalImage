@@ -56,7 +56,7 @@ def plot_training(logs,name):
             generic_plot(params)
     for i in [0, 2, 4]:
         params = {'figure_name': metrics[i]+name, 'legend': ['train', 'validation']*len(logs),
-                  'save_file': run_dir + 'model_{}'.format(name) + metrics[i] + '.png'}
+                  'save_file': run_dir + 'model_{}_'.format(name) + metrics[i] + '.png'}
         generic_plot(params)
 
 def probability_plot(model, vol,fold,threshold=0.5,slice = 95):

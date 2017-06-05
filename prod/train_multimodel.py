@@ -5,6 +5,8 @@ Created on Wed Dec 21 19:32:39 2016
 @author: yaniv
 """
 # create logger
+from tensorflow.python.ops.data_flow_ops import _as_name_list
+
 from paths import *
 from prod.logging_tools import get_logger
 
@@ -15,6 +17,7 @@ from keras.optimizers import Adadelta,SGD
 import pickle
 from  itertools import product
 from sklearn.model_selection import KFold
+import sys
 
 
 from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model
@@ -34,10 +37,8 @@ def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,n
 
     train_images,pos_train_list,neg_train_list = load_data(PersonTrainList,contrast_type)
     train_generator = generator(pos_train_list, neg_train_list, train_images,view_type)
-    logger.info("after tr")
     val_images,pos_val_list,neg_val_list = load_data(PersonValList,contrast_type)
     val_set = aggregate_genrated_samples(pos_val_list, neg_val_list, val_images,view_type)
-    logger.info("after val")
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
@@ -64,6 +65,11 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     # calc_dice(confusion_mat, "individual val {}".format(0))
     return history
 
+def my_handler(type, value, tb):
+    logger.exception("Uncaught exception: {0}".format(str(value)))
+
+# Install exception handler
+sys.excepthook = my_handler
 
 # ######## train model
 logger.debug("start script")
@@ -111,6 +117,6 @@ for train_index, test_index in kf.split(data):
     combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train_combined(combined_model, train_d, val_d, MR_modalities, view_list, "combined_"+str(test_person))
     with open(run_dir + 'cross_valid_stats_multimodel_{}.lst'.format(test_person), 'wb') as fp:
-        pickle.dump(history, fp)
+        pickle.dump(history.history, fp)
 
     combined_model.save_weights(weight_path+'combined_weights_{}.h5'.format(test_person))
