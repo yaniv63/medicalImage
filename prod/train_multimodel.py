@@ -29,7 +29,6 @@ from plotting_tools import *
 
 
 def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,name,batch_size=256):
-    logger.debug("training model {} fold {}".format(name,fold_num))
     logger.debug("creating callbacks")
     callbacks = create_callbacks(name,fold_num)
 
@@ -42,7 +41,7 @@ def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,n
 
     logger.info("training individual model")
     epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
+    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=300, callbacks=callbacks,
                                       validation_data=val_set)
     confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
@@ -75,7 +74,6 @@ sys.excepthook = my_handler
 logger.debug("start script")
 MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial','coronal', 'sagittal']
-image_types = product(MR_modalities,view_list)
 
 
 data = np.array([[(1,x) for x in range(1,5)],[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)],
@@ -90,17 +88,17 @@ for train_index, test_index in kf.split(data):
     test_person = data[test_index][0][0][0]
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-    for contrast_type,view_type in image_types:
+    for i,(contrast_type,view_type) in enumerate(product(MR_modalities,view_list)):
         name="{}_{}_test_{}".format(contrast_type,view_type,test_person)
         logger.info("training model {}".format(name))
         runs = []
-        predictor=one_predictor_model()
+        predictor= one_predictor_model(index = i)
         optimizer = SGD(lr=0.01, nesterov=True)
         predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
         history = train(predictor,train_d,val_d,view_type,contrast_type, 0, name=name)
         runs.append(history.history)
 
-        with open(run_dir + 'cross_valid_stats{}_{}_test_{}.lst'.format(view_type,contrast_type,test_person), 'wb') as fp:
+        with open(run_dir + 'cross_valid_stats_{}_{}_test_{}.lst'.format(view_type,contrast_type,test_person), 'wb') as fp:
                 pickle.dump(runs, fp)
         plot_training(runs,name = name)
 
@@ -109,6 +107,7 @@ for train_index, test_index in kf.split(data):
     layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
 
     for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
+        print test_person
         name="{}_{}_test_{}".format(contrast,view,test_person)
         a = run_dir + 'model_{}_fold_{}.h5'.format(name,0)
         layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)

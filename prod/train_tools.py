@@ -33,10 +33,8 @@ class ReduceLR(EarlyStopping):
         else:
             self.wait += 1
             if self.wait >= self.patience:
-                print self.model.get_weights()
                 logger.info('loading previous weights')
                 self.model.load_weights(run_dir + 'model_{}_fold_{}.h5'.format(self.name, self.fold))
-                print self.model.get_weights()
                 self.wait = 0
                 old_lr = float(K.get_value(self.model.optimizer.lr))
                 new_lr = old_lr * self.factor
@@ -148,4 +146,3 @@ def create_callbacks(name,fold):
     reducelr = ReduceLR(name,fold,0.5,patience=15)
     mycallbacks = [print_logs,save_weights,reducelr]
     return mycallbacks
-
