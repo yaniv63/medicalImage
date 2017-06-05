@@ -12,20 +12,20 @@ import numpy as np
 def create_smodel(N_mod, img_rows, img_cols, index=0):
     index = str(index)
     smodel = Sequential(name='Seq_' + index)
-    # 1x32x32 -> 24x14x14
+    # 1x33x33 -> 24x14x14
     smodel.add(Convolution2D(24, 5, 5,
-                             input_shape=(N_mod, img_rows, img_cols), name='conv1_' + index,W_regularizer='l2',b_regularizer='l2'))  # 1x32x32 -> 24x28x28
+                             input_shape=(N_mod, img_rows, img_cols), name='conv1_' + index,W_regularizer='l2',b_regularizer='l2'))  # 1x33x33 -> 24x28x28
     smodel.add(LeakyReLU(name='leakyrelu1_' + index))
     smodel.add(MaxPooling2D(pool_size=(2, 2), name='maxpool1_' + index))  # 24x28x28 -> 24x14x14
     #smodel.add(Dropout(0.25, name='drop1_' + index))
 
-    # 24x14x14 -> 32x6x6
-    smodel.add(Convolution2D(32, 3, 3, name='conv2_' + index,W_regularizer='l2',b_regularizer='l2'))  # 24x14x14 -> 32x12x12
+    # 24x14x14 -> 33x6x6
+    smodel.add(Convolution2D(33, 3, 3, name='conv2_' + index,W_regularizer='l2',b_regularizer='l2'))  # 24x14x14 -> 33x12x12
     smodel.add(LeakyReLU(name='leakyrelu2_' + index))
-    smodel.add(MaxPooling2D(pool_size=(2, 2), name='maxpool2_' + index))  # 32x12x12 -> 32x6x6
+    smodel.add(MaxPooling2D(pool_size=(2, 2), name='maxpool2_' + index))  # 33x12x12 -> 33x6x6
     #smodel.add(Dropout(0.25, name='drop2_' + index))
 
-    # 32x6x6 -> 48x4x4
+    # 33x6x6 -> 48x4x4
     smodel.add(Convolution2D(48, 3, 3, name='conv3_' + index,W_regularizer='l2',b_regularizer='l2'))
     smodel.add(LeakyReLU(name='leakyrelu3_' + index))
     #smodel.add(Dropout(0.25, name='drop3_' + index))
@@ -38,7 +38,7 @@ def create_smodel(N_mod, img_rows, img_cols, index=0):
 
 
 
-def one_predictor_model(N_mod = 1, img_rows = 32, img_cols = 32,index=0):
+def one_predictor_model(N_mod = 1, img_rows = 33, img_cols = 33,index=0):
     predictor = create_smodel(N_mod,img_rows,img_cols,index)
     predictor.add(Dense(1,activation='sigmoid',name='out{}'.format(index),W_regularizer='l2',b_regularizer='l2'))
     return predictor
@@ -50,8 +50,8 @@ def two_predictors_combined_model():
     init_weights = np.ones((2,1))
     first_predictor = one_predictor_model(index=0)
     second_predictor = one_predictor_model(index=1)
-    first_predictor_data = Input(shape=(1,32,32))
-    second_predictor_data = Input(shape=(1,32,32))
+    first_predictor_data = Input(shape=(1,33,33))
+    second_predictor_data = Input(shape=(1,33,33))
     decide1= first_predictor(first_predictor_data)
     decide2= second_predictor(second_predictor_data)
     merged = merge([decide1,decide2],mode='concat',concat_axis=1)
@@ -61,10 +61,10 @@ def two_predictors_combined_model():
 
 
 def two_parameters_combined_model():
-    model1 = create_smodel(1,32,32,0)
-    model2 = create_smodel(1,32,32,1)
-    first_predictor_data = Input(shape=(1,32,32))
-    second_predictor_data = Input(shape=(1,32,32))
+    model1 = create_smodel(1,33,33,0)
+    model2 = create_smodel(1,33,33,1)
+    first_predictor_data = Input(shape=(1,33,33))
+    second_predictor_data = Input(shape=(1,33,33))
     param1 = model1(first_predictor_data)
     param2 = model2(second_predictor_data)
     merged = merge(inputs=[param1,param2],mode='concat',concat_axis=1)
@@ -76,15 +76,15 @@ def two_parameters_combined_model():
 def average_two_models_prediction():    
     first_predictor = one_predictor_model(index=0)
     second_predictor = one_predictor_model(index=1)
-    first_predictor_data = Input(shape=(1,32,32))
-    second_predictor_data = Input(shape=(1,32,32))
+    first_predictor_data = Input(shape=(1,33,33))
+    second_predictor_data = Input(shape=(1,33,33))
     decide1= first_predictor(first_predictor_data)
     decide2= second_predictor(second_predictor_data)
     merged = merge([decide1,decide2],mode='ave',concat_axis=1)
     model = Model(input=[first_predictor_data,second_predictor_data],output=merged)
     return model
 
-def average_n_models_prediction(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
+def average_n_models_prediction(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
     predictors = []
     decisions = []
     data = []
@@ -97,7 +97,7 @@ def average_n_models_prediction(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
     return model
 
 
-def n_predictors_combined_model(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
+def n_predictors_combined_model(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
     init_bias = np.full(shape=(1,), fill_value=-1)
     init_weights = np.ones((n, 1))
     predictors = []
@@ -113,7 +113,7 @@ def n_predictors_combined_model(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
     model = Model(input=data, output=out)
     return model
 
-def n_parameters_combined_model(N_mod = 1, img_rows = 32, img_cols = 32,n=2):
+def n_parameters_combined_model(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
     predictors = []
     params = []
     data = []

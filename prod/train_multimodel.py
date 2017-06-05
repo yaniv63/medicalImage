@@ -14,6 +14,8 @@ logger = get_logger(run_dir)
 from keras.optimizers import Adadelta,SGD
 import pickle
 from  itertools import product
+from sklearn.model_selection import KFold
+
 
 from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
@@ -22,8 +24,6 @@ from data_containers import load_data,load_all_data
 from metrics import calc_confusion_mat,calc_dice
 from plotting_tools import *
 
-
-temp_dir = "/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/run5-fix_regulariz/"
 
 def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,name,batch_size=256):
     logger.debug("training model {} fold {}".format(name,fold_num))
@@ -53,11 +53,8 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
     train_generator = combined_generator(positive_list, negative_list, train_images,contrast_list,view_list)
-    logger.info("after tr")
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
-    #val_set = combined_aggregate_genrated_samples(pos_val_list, neg_val_list, val_images, contrast_list,view_list)
     val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
-    logger.info("after val")
     logger.info("training individual model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
@@ -70,46 +67,50 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
 
 # ######## train model
 logger.debug("start script")
-MR_modalities = ['FLAIR']#['FLAIR', 'T2', 'MPRAGE', 'PD']
-view_list = ['axial','coronal', 'sagittal']#['axial', 'coronal', 'sagittal']
+MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
+view_list = ['axial','coronal', 'sagittal']
 image_types = product(MR_modalities,view_list)
 
-# person_indices = np.array([5, 2, 3, 4])
-# train_index = [0,1, 3];val_index = [2]
-train_d =[(5,2),(5,3),(5,4),(2,1),(2,4),(4,2),(4,3),(4,4),(5,1),(2,3),(2,2),(4,1)]
-val_d = [(3,2),(3,3),(3,4),(3,5),(3,1)]
-test_d = [(1,2),(1,3),(1,4),(1,1)]
 
+data = np.array([[(1,x) for x in range(1,5)],[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)],
+        [(5,x) for x in range(1,5)]])
+kf = KFold(n_splits=5)
 
-for contrast_type,view_type in image_types:
-    # kf = KFold(n_splits=4)
-    runs = []
-    predictors = []
+for train_index, test_index in kf.split(data):
+    X_train = data[train_index]
+    val_d = X_train[-1]
+    train_data =X_train[:-1].tolist()
+    train_d = [item for sublist in train_data for item in sublist]
+    test_person = data[test_index][0][0][0]
+    logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-    #for i,(train_index, val_index) in enumerate(kf.split(person_indices)):
-    logger.info("Train: {} Val {} ".format( train_d,val_d) )
-    predictors.append(one_predictor_model())
+    for contrast_type,view_type in image_types:
+        name="{}_{}_test_{}".format(contrast_type,view_type,test_person)
+        logger.info("training model {}".format(name))
+        runs = []
+        predictor=one_predictor_model()
+        optimizer = SGD(lr=0.01, nesterov=True)
+        predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+        history = train(predictor,train_d,val_d,view_type,contrast_type, 0, name=name)
+        runs.append(history.history)
+
+        with open(run_dir + 'cross_valid_stats{}_{}_test_{}.lst'.format(view_type,contrast_type,test_person), 'wb') as fp:
+                pickle.dump(runs, fp)
+        plot_training(runs,name = name)
+
     optimizer = SGD(lr=0.01, nesterov=True)
-    predictors[0].compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    history = train(predictors[0],train_d,val_d,view_type,contrast_type, 0, name="{}_{}".format(contrast_type,view_type))
-    runs.append(history.history)
+    combined_model = n_predictors_combined_model(n=len(MR_modalities)*len(view_list))
+    layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
 
-    with open(run_dir + 'cross_valid_stats{}_{}.lst'.format(view_type,contrast_type), 'wb') as fp:
-            pickle.dump(runs, fp)
-    plot_training(runs,view_type,contrast_type)
+    for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
+        name="{}_{}_test_{}".format(contrast,view,test_person)
+        a = run_dir + 'model_{}_fold_{}.h5'.format(name,0)
+        layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
+        layer_dict["Seq_{}".format(i)].trainable = False
 
-optimizer = SGD(lr=0.01, nesterov=True)
-combined_model = n_predictors_combined_model(n=len(MR_modalities)*len(view_list))
-combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
+    combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    history = train_combined(combined_model, train_d, val_d, MR_modalities, view_list, "combined_"+str(test_person))
+    with open(run_dir + 'cross_valid_stats_multimodel_{}.lst'.format(test_person), 'wb') as fp:
+        pickle.dump(history, fp)
 
-for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
-    a = run_dir + 'model_{}_{}_fold_{}.h5'.format(contrast,view,0)
-    layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
-    layer_dict["Seq_{}".format(i)].trainable = False
-
-history = train_combined(combined_model, train_d, val_d, MR_modalities, view_list, "combined")
-with open(run_dir + 'cross_valid_stats_multimodel.lst', 'wb') as fp:
-    pickle.dump(history, fp)
-
-combined_model.save_weights(weight_path+'combined_weights.h5')
+    combined_model.save_weights(weight_path+'combined_weights_{}.h5'.format(test_person))

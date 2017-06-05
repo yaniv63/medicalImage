@@ -43,6 +43,20 @@ class ReduceLR(EarlyStopping):
                 K.set_value(self.model.optimizer.lr, new_lr)
                 logger.info('\nEpoch {}: reducing learning rate from  {} to {}'.format(epoch,old_lr, new_lr))
 
+
+def flip_axis(x, axis):
+    x = np.asarray(x).swapaxes(axis, 0)
+    x = x[::-1, ...]
+    x = x.swapaxes(0, axis)
+    return x
+
+def flip_patch(patch):
+    if np.random.random() < 0.5:
+        patch = flip_axis(patch,0)
+    if np.random.random() < 0.5:
+        patch = flip_axis(patch,1)
+    return  patch
+
 def generator(positive_list,negative_list,data,view,batch_size=256,patch_width = 16,only_once=False):
     half_batch,batch_num = calc_batch_params(positive_list,batch_size)
     while True:
@@ -58,6 +72,7 @@ def generator(positive_list,negative_list,data,view,batch_size=256,patch_width =
                                       negative_batch]
             final_batch = np.random.permutation(positive_batch_patches + negative_batch_patches)
             samples =  [patches for patches,_ in final_batch]
+            samples = [flip_patch(x) for x in samples]
             samples = np.expand_dims(samples, 1)
 
             labels = [labels for _,labels in final_batch]
@@ -86,7 +101,8 @@ def combined_generator(positive_list,negative_list,data,contrasts,views,batch_si
                     for view in views:
                         patch_dict[contrast+'_'+view].append(extract_patch(volume,view,(i,j,k),w))
             for x, y in product(contrasts, views):
-                sample = np.array(patch_dict[x+'_'+y])
+                sample = patch_dict[x+'_'+y]
+                sample = np.array([flip_patch(x) for x in sample])
                 samples.append(np.expand_dims(sample,1))
             yield (samples,labels)
 
@@ -122,13 +138,14 @@ def combined_aggregate_genrated_samples(pos_list,neg_list,data,contrast_list,vie
     return samples,labels
 
 def create_callbacks(name,fold):
-    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_fmeasure',
+    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_loss',
                                    save_best_only=True,
                                    save_weights_only=True)
     print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
                  format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
                         logs['val_fmeasure'])))
-    reducelr = ReduceLR(name,fold,0.2,patience=10)
+    reducelr = ReduceLR(name,fold,0.5,patience=15)
     mycallbacks = [print_logs,save_weights,reducelr]
     return mycallbacks
+

@@ -43,20 +43,20 @@ def generic_plot(kwargs):
     if kwargs.has_key("save_file"):
         plt.savefig(kwargs["save_file"],dpi=100)
 
-def plot_training(logs,view_type,contrast_type):
+def plot_training(logs,name):
     metrics = ['acc', 'val_acc', 'loss', 'val_loss', 'fmeasure', 'val_fmeasure']
     linestyles = ['-', '--']
     colors = ['b','y','r','g']
     for j,history in enumerate(logs):
         for i in [0,2,4]:
-            params = {'figure_name': metrics[i]+view_type+contrast_type, 'y':history[metrics[i]],'title':'model_{}_{} '.format(view_type,contrast_type) + metrics[i],
+            params = {'figure_name': metrics[i]+name, 'y':history[metrics[i]],'title':'model_{} '.format(name) + metrics[i],
                       'ylabel':metrics[i],'xlabel':'epoch',"line_att":dict(linestyle=linestyles[0],color=colors[j])}
             generic_plot(params)
-            params = {'figure_name': metrics[i]+view_type+contrast_type, 'y':history[metrics[i+1]],"line_att":dict(linestyle=linestyles[1],color=colors[j])}
+            params = {'figure_name': metrics[i]+name, 'y':history[metrics[i+1]],"line_att":dict(linestyle=linestyles[1],color=colors[j])}
             generic_plot(params)
     for i in [0, 2, 4]:
-        params = {'figure_name': metrics[i]+view_type+contrast_type, 'legend': ['train', 'validation']*len(logs),
-                  'save_file': run_dir + 'model_{}_{}_'.format(view_type,contrast_type) + metrics[i] + '.png'}
+        params = {'figure_name': metrics[i]+name, 'legend': ['train', 'validation']*len(logs),
+                  'save_file': run_dir + 'model_{}'.format(name) + metrics[i] + '.png'}
         generic_plot(params)
 
 def probability_plot(model, vol,fold,threshold=0.5,slice = 95):
