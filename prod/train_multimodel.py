@@ -20,7 +20,7 @@ from sklearn.model_selection import KFold
 import sys
 
 
-from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model
+from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model,n_parameters_combined_model
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
     , calc_epoch_size
 from data_containers import load_data,load_all_data
@@ -88,28 +88,30 @@ for train_index, test_index in kf.split(data):
     test_person = data[test_index][0][0][0]
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-    for i,(contrast_type,view_type) in enumerate(product(MR_modalities,view_list)):
-        name="{}_{}_test_{}".format(contrast_type,view_type,test_person)
-        logger.info("training model {}".format(name))
-        runs = []
-        predictor= one_predictor_model(index = i)
-        optimizer = SGD(lr=0.01, nesterov=True)
-        predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-        history = train(predictor,train_d,val_d,view_type,contrast_type, 0, name=name)
-        runs.append(history.history)
-
-        with open(run_dir + 'cross_valid_stats_{}_{}_test_{}.lst'.format(view_type,contrast_type,test_person), 'wb') as fp:
-                pickle.dump(runs, fp)
-        plot_training(runs,name = name)
+    # for i,(contrast_type,view_type) in enumerate(product(MR_modalities,view_list)):
+    #     name="{}_{}_test_{}".format(contrast_type,view_type,test_person)
+    #     logger.info("training model {}".format(name))
+    #     runs = []
+    #     predictor= one_predictor_model(index = i)
+    #     optimizer = SGD(lr=0.01, nesterov=True)
+    #     predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    #     history = train(predictor,train_d,val_d,view_type,contrast_type, 0, name=name)
+    #     runs.append(history.history)
+    #
+    #     with open(run_dir + 'cross_valid_stats_{}_{}_test_{}.lst'.format(view_type,contrast_type,test_person), 'wb') as fp:
+    #             pickle.dump(runs, fp)
+    #     plot_training(runs,name = name)
 
     optimizer = SGD(lr=0.01, nesterov=True)
-    combined_model = n_predictors_combined_model(n=len(MR_modalities)*len(view_list))
+    # combined_model = n_predictors_combined_model(n=len(MR_modalities)*len(view_list))
+    combined_model = n_parameters_combined_model(n=len(MR_modalities) * len(view_list))
     layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
 
+    dr = '/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/'
     for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
         print test_person
         name="{}_{}_test_{}".format(contrast,view,test_person)
-        a = run_dir + 'model_{}_fold_{}.h5'.format(name,0)
+        a = dr + 'model_{}_fold_{}.h5'.format(name,0)
         layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
         layer_dict["Seq_{}".format(i)].trainable = False
 

@@ -92,3 +92,32 @@ def probability_plot(model, vol,fold,threshold=0.5,slice = 95):
     params["image"] = final_decision[slice, :, :]
     params["save_file"] = run_dir +'slice_decision_{}'.format(fold) + '.png'
     generic_plot(params)
+
+
+def watch_predictions(data, labels, predictions,view,w,):
+    from itertools import  product
+    from create_patches import can_extract_patch,extract_patch
+    max = 10;counter=0
+    shape = data.shape
+    indexes = list(product(range(shape[0]), range(shape[1]), range(shape[2])))
+    indexes = np.random.permutation(indexes)
+    for i, j, k in indexes:
+        if labels[i][j][k] != predictions[i][j][k] and can_extract_patch(shape,i,j,k,w):
+            counter+=1
+            plt.figure()
+            plt.title("label {} predict {}".format(labels[i][j][k],predictions[i][j][k]))
+            plt.imshow(extract_patch(data,view,(i,j,k),w),cmap=matplotlib.cm.gray)
+        if counter >= max:
+            plt.show()
+            break
+    counter = 0
+    indexes = np.random.permutation(indexes)
+    for i, j, k in indexes:
+        if labels[i][j][k] == predictions[i][j][k] == 1 and can_extract_patch(shape,i,j,k,w):
+            counter+=1
+            plt.figure()
+            plt.title("label {} predict {}".format(labels[i][j][k],predictions[i][j][k]))
+            plt.imshow(extract_patch(data,view,(i,j,k),w),cmap=matplotlib.cm.gray)
+        if counter >= max:
+            plt.show()
+            break
