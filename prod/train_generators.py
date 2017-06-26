@@ -89,6 +89,7 @@ if __name__ == "__main__":
     batch_p = batch_generator(batch_q,event)
     worker_pos_p = augmentation_worker(pos_index_q,pos_patch_q,data,contrasts,views,w,event,aug_args)
     worker_neg_p = augmentation_worker(neg_index_q, neg_patch_q, data, contrasts, views,w,event, aug_args)
+    worker_list = [worker_pos_p,worker_neg_p]
     positive_p = Process(target=worker_pos_p.start_calc, name='positive worker')
     negative_p = Process(target=worker_neg_p.start_calc, name='negative worker')
     process_list = [collector_p,patch_p,positive_p,negative_p]#positive_p]#,negative_p]
@@ -103,10 +104,8 @@ if __name__ == "__main__":
         end = time.time()
         print "round time {}".format(end-start)
     event.set()
+    for i in worker_list:
+        i.finish()
     for i in process_list:
         i.terminate()
-
     raw_input("finished")
-    from Queue import  Queue
-    a = Queue()
-    a.get()
