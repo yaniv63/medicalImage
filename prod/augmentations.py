@@ -79,7 +79,7 @@ def get_image(volume,view,i,j,k):
         roi_mask[i,j] = 1
     return image,roi_mask
 
-class augmentation_worker(object):
+class AugmentationWorker(object):
 
     def __init__(self,input_queue,output_queue,data,contrasts,views,w,event,aug_args):
         self.__input_queue = input_queue
@@ -117,7 +117,7 @@ class augmentation_worker(object):
     def worker_augmentation(self):
         last_cur =0
         while True:#not self.__event.is_set():
-            start = tm.time()
+            #start = tm.time()
             person, time, i, j, k = self.__input_queue.get()
             #cur = tm.time();print cur-last_cur;last_cur=cur
             #end = tm.time();print "queue get {}".format(end-start)
@@ -160,7 +160,7 @@ class augmentation_worker(object):
                 samples.append(sample)
             self.__input_queue.task_done()
             self.__output_queue.put(samples)
-            end = tm.time();print "queue out {}".format(end-start)
+            #end = tm.time();print "queue out {}".format(end-start)
         self.__output_queue.close()
 
 

@@ -26,7 +26,7 @@ from train_tools import create_callbacks,generator,combined_generator,aggregate_
 from data_containers import load_data,load_all_data
 from metrics import calc_confusion_mat,calc_dice
 from plotting_tools import *
-
+from train_proccesses import TrainGenerator
 
 def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,name,batch_size=256):
     logger.debug("creating callbacks")
@@ -47,19 +47,22 @@ def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,n
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
     return history
 
-def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):
+def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=128):
 
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
-    train_generator = combined_generator(positive_list, negative_list, train_images,contrast_list,view_list)
+    train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16)
+    #train_generator = combined_generator(positive_list, negative_list, train_images,contrast_list,view_list)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
-    logger.info("training individual model")
+    logger.info("training combined model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
+    gen = train_generator.get_generator()
     history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=300, callbacks=callbacks,
                                   validation_data=val_generator,nb_val_samples=val_size)
+    gen.close()
     # confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(0))
     # calc_dice(confusion_mat, "individual val {}".format(0))
     return history
@@ -108,12 +111,12 @@ for train_index, test_index in kf.split(data):
     layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
 
     dr = '/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/'
-    for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
-        print test_person
-        name="{}_{}_test_{}".format(contrast,view,test_person)
-        a = dr + 'model_{}_fold_{}.h5'.format(name,0)
-        layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
-        layer_dict["Seq_{}".format(i)].trainable = False
+    # for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
+    #     print test_person
+    #     name="{}_{}_test_{}".format(contrast,view,test_person)
+    #     a = dr + 'model_{}_fold_{}.h5'.format(name,0)
+    #     layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
+    #     layer_dict["Seq_{}".format(i)].trainable = False
 
     combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train_combined(combined_model, train_d, val_d, MR_modalities, view_list, "combined_"+str(test_person))
