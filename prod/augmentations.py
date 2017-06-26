@@ -153,7 +153,7 @@ class augmentation_worker(object):
                         patch = flip_patch(patch,self.__flip_chance)
                         # end = tm.time();print "flip {}".format(end-start)
                     patch_dict[contrast + '_' + view].append(patch)
-                    plt_image_patch(image, patch, r1, r2)
+                    #plt_image_patch(image, patch, r1, r2)
             #start = tm.time()
             for x, y in product(self.__contrasts, self.__views):
                 sample = patch_dict[x + '_' + y]

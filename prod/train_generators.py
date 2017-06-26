@@ -1,6 +1,6 @@
 import numpy as np
 from paths import *
-from prod.logging_tools import get_logger
+from logging_tools import get_logger
 import time as tm
 
 run_dir = get_run_dir()
@@ -89,10 +89,22 @@ if __name__ == "__main__":
     batch_p = batch_generator(batch_q,event)
     worker_pos_p = augmentation_worker(pos_index_q,pos_patch_q,data,contrasts,views,w,event,aug_args)
     worker_neg_p = augmentation_worker(neg_index_q, neg_patch_q, data, contrasts, views,w,event, aug_args)
-    worker_list = [worker_pos_p,worker_neg_p]
     positive_p = Process(target=worker_pos_p.start_calc, name='positive worker')
     negative_p = Process(target=worker_neg_p.start_calc, name='negative worker')
-    process_list = [collector_p,patch_p,positive_p,negative_p]#positive_p]#,negative_p]
+    worker_pos_p2 = augmentation_worker(pos_index_q, pos_patch_q, data, contrasts, views, w, event, aug_args)
+    worker_neg_p2 = augmentation_worker(neg_index_q, neg_patch_q, data, contrasts, views, w, event, aug_args)
+    positive_p2 = Process(target=worker_pos_p2.start_calc, name='positive worker2')
+    negative_p2 = Process(target=worker_neg_p2.start_calc, name='negative worker2')
+    worker_pos_p3 = augmentation_worker(pos_index_q, pos_patch_q, data, contrasts, views, w, event, aug_args)
+    worker_neg_p3 = augmentation_worker(neg_index_q, neg_patch_q, data, contrasts, views, w, event, aug_args)
+    positive_p3 = Process(target=worker_pos_p3.start_calc, name='positive worker3')
+    negative_p3= Process(target=worker_neg_p3.start_calc, name='negative worker3')
+    worker_pos_p4 = augmentation_worker(pos_index_q, pos_patch_q, data, contrasts, views, w, event, aug_args)
+    worker_neg_p4 = augmentation_worker(neg_index_q, neg_patch_q, data, contrasts, views, w, event, aug_args)
+    positive_p4 = Process(target=worker_pos_p4.start_calc, name='positive worker4')
+    negative_p4 = Process(target=worker_neg_p4.start_calc, name='negative worker4')
+    worker_list = [worker_pos_p,worker_neg_p,worker_pos_p2,worker_neg_p2,worker_pos_p3,worker_neg_p3,worker_pos_p4,worker_neg_p4]
+    process_list = [collector_p,patch_p,positive_p,negative_p,positive_p2,negative_p2,positive_p3,negative_p3,positive_p4,negative_p4]#positive_p]#,negative_p]
     for i in process_list:
         i.daemon = True
         i.start()
