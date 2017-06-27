@@ -60,7 +60,7 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=300, callbacks=callbacks,
+    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=300, callbacks=callbacks,
                                   validation_data=val_generator,nb_val_samples=val_size)
     gen.close()
     # confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(0))
@@ -106,8 +106,8 @@ for train_index, test_index in kf.split(data):
     #     plot_training(runs,name = name)
 
     optimizer = SGD(lr=0.01, nesterov=True)
-    # combined_model = n_predictors_combined_model(n=len(MR_modalities)*len(view_list))
-    combined_model = n_parameters_combined_model(n=len(MR_modalities) * len(view_list))
+    combined_model = n_predictors_combined_model(N_mod = 4, img_rows = 33, img_cols = 33,n=len(view_list))
+    #combined_model = n_parameters_combined_model(n=len(MR_modalities) * len(view_list))
     layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
 
     dr = '/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/'

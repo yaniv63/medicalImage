@@ -104,7 +104,7 @@ def n_predictors_combined_model(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
     decisions = []
     data = []
     for i in range(n):
-        predictors.append(one_predictor_model(index=i))
+        predictors.append(one_predictor_model(N_mod, img_rows, img_cols,index=i))
         data.append(Input(shape=(N_mod, img_rows, img_cols),name='input{}'.format(i)))
         decisions.append(predictors[i](data[i]))
     merged = merge(decisions, mode='concat', concat_axis=1)

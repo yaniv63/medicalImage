@@ -74,11 +74,11 @@ class TrainGenerator(object):
                           args=(self.positive_list, self.negative_list, pos_index_q, neg_index_q, self.event),
                           name='random_batch_indexes')
         collector_p = Process(target=collect_batch, args=(
-        pos_patch_q, neg_patch_q, batch_q, self.batch_size, self.event, len(self.contrasts) * len(self.views)),
+        pos_patch_q, neg_patch_q, batch_q, self.batch_size, self.event,  len(self.views)),
                               name='collect_batch')
         self.proccesses.append(patch_p)
         self.proccesses.append(collector_p)
-        for i in range(4):
+        for i in range(1):
             pos_worker = AugmentationWorker(pos_index_q, pos_patch_q, self.data, self.contrasts, self.views, self.w, self.event,
                                              self.aug_args)
             neg_worker = AugmentationWorker(neg_index_q, neg_patch_q, self.data, self.contrasts, self.views, self.w, self.event,
@@ -127,6 +127,7 @@ class TrainGenerator(object):
 if __name__ == "__main__":
 
     from data_containers import load_all_data
+    from train_tools import combined_generator
     import time
     import numpy as np
     logger.info("start")
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     batch_size = 128
     gen = TrainGenerator(data,positive_list,negative_list,contrasts,views,batch_size,w)
     gen2 = gen.get_generator()
-
+    old_gen = combined_generator(positive_list,negative_list,data,contrasts,views,batch_size=128)
     for i in range(10):
         start = time.time()
         print "round {}".format(i)

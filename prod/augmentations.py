@@ -10,7 +10,7 @@ logger = logging.getLogger('root')
 import time as tm
 
 
-def plt_image_patch(image,patch,r1,r2):
+def plt_image_patch(image,patch,r1=None,r2=None):
     print r1, r2
     import matplotlib.pylab as plt
     import matplotlib
@@ -18,7 +18,6 @@ def plt_image_patch(image,patch,r1,r2):
     plt.imshow(image, cmap=matplotlib.cm.gray)
     plt.figure();
     plt.imshow(patch, cmap=matplotlib.cm.gray)
-    plt.show()
 
 def flip_axis(x, axis):
     x = np.asarray(x).swapaxes(axis, 0)
@@ -26,16 +25,15 @@ def flip_axis(x, axis):
     x = x.swapaxes(0, axis)
     return x
 
-def flip_patch(patch,p):
-    if np.random.random() < p:
+def flip_patch(patch,p,randlr,randud):
+    if randud < p:
         patch = flip_axis(patch,0)
-    if np.random.random() < p:
+    if randlr < p:
         patch = flip_axis(patch,1)
     return patch
 
-def rescale(image,roi_mask,low,high,SE):
+def rescale(image,roi_mask,factor,SE):
     shape = image.shape
-    factor = np.random.uniform(low,high)
     out_shape = tuple(int(x * factor) for x in shape)
     if factor < 1:
         roi_mask = binary_dilation(roi_mask,SE).astype(roi_mask.dtype)
@@ -46,9 +44,8 @@ def rescale(image,roi_mask,low,high,SE):
     return resized_image,resized_mask
 
 
-def rotate(image,roi_mask,angle):
+def rotate(image,roi_mask,rot_angle):
     rows, cols = image.shape
-    rot_angle = np.random.randint(-angle,angle)
     M = cv2.getRotationMatrix2D((cols / 2, rows / 2), rot_angle, 1)
     image = cv2.warpAffine(image, M, (cols, rows))
     roi_mask = cv2.warpAffine(roi_mask, M, (cols, rows))
@@ -106,7 +103,7 @@ class AugmentationWorker(object):
             self.__angle = aug_args['rot_angle']
         else:
             self.__rotate = False
-        self.__pool = Pool(5)
+        self.__pool = Pool(1)
 
     def start_calc(self):
         self.__pool.apply_async(self.worker_augmentation())
@@ -114,55 +111,92 @@ class AugmentationWorker(object):
     def finish(self):
         self.__pool.terminate()
 
+    # def worker_augmentation(self):
+    #     last_cur =0
+    #     while True:#not self.__event.is_set():
+    #         #start = tm.time()
+    #         person, time, i, j, k = self.__input_queue.get()
+    #         #cur = tm.time();print cur-last_cur;last_cur=cur
+    #         #end = tm.time();print "queue get {}".format(end-start)
+    #         patch_dict = defaultdict(list)
+    #         samples = []
+    #         for contrast in self.__contrasts:
+    #             # start = tm.time()
+    #             volume = self.__data[person][time][contrast]
+    #             # end = tm.time();print "get data {}".format(end-start)
+    #             for view in self.__views:
+    #                 # start = tm.time()
+    #                 image,roi_mask = get_image(volume,view,i,j,k)
+    #                 # end = tm.time();print "get image {}".format(end-start)
+    #                 if self.__rescale:
+    #                     # start = tm.time()
+    #                     image,roi_mask = rescale(image,roi_mask,self.__lowbound,self.__highbound,self.__binary_element)
+    #                     # end = tm.time();print "rescall {}".format(end-start)
+    #                 if self.__rotate:
+    #                     # start = tm.time()
+    #                     image, roi_mask = rotate(image,roi_mask,self.__angle)
+    #                     # end = tm.time();print "rotate {}".format(end-start)
+    #                 try:
+    #                     # start = tm.time()
+    #                     r1,r2 = np.transpose(np.nonzero(roi_mask))[0] #find roi in image after transformations
+    #                     # end = tm.time(); print"transpose {}".format(end-start)
+    #                 except Exception as e:
+    #                     logger.error("error")
+    #                 # start = tm.time()
+    #                 patch = crop_patch(image,r1,r2,self.__w)
+    #                 # end = tm.time();print "crop {}".format(end-start)
+    #                 if self.__flip:
+    #                     # start = tm.time()
+    #                     patch = flip_patch(patch,self.__flip_chance)
+    #                     # end = tm.time();print "flip {}".format(end-start)
+    #                 patch_dict[contrast + '_' + view].append(patch)
+    #                 #plt_image_patch(image, patch, r1, r2)
+    #         #start = tm.time()
+    #         for x, y in product(self.__contrasts, self.__views):
+    #             sample = patch_dict[x + '_' + y]
+    #             samples.append(sample)
+    #         self.__input_queue.task_done()
+    #         self.__output_queue.put(samples)
+    #         #end = tm.time();print "queue out {}".format(end-start)
+    #     self.__output_queue.close()
+
     def worker_augmentation(self):
-        last_cur =0
-        while True:#not self.__event.is_set():
-            #start = tm.time()
+        while not self.__event.is_set():
             person, time, i, j, k = self.__input_queue.get()
-            #cur = tm.time();print cur-last_cur;last_cur=cur
-            #end = tm.time();print "queue get {}".format(end-start)
             patch_dict = defaultdict(list)
             samples = []
-            for contrast in self.__contrasts:
-                # start = tm.time()
-                volume = self.__data[person][time][contrast]
-                # end = tm.time();print "get data {}".format(end-start)
-                for view in self.__views:
-                    # start = tm.time()
+            image_dict = []
+            for view in self.__views:
+                if self.__rescale:
+                    factor = np.random.uniform(self.__lowbound, self.__highbound)
+                if self.__rotate:
+                    rot_angle = np.random.randint(-self.__angle, self.__angle)
+                if self.__flip:
+                    randlr = np.random.random()
+                    randud = np.random.random()
+                for contrast in self.__contrasts:
+                    volume = self.__data[person][time][contrast]
                     image,roi_mask = get_image(volume,view,i,j,k)
-                    # end = tm.time();print "get image {}".format(end-start)
                     if self.__rescale:
-                        # start = tm.time()
-                        image,roi_mask = rescale(image,roi_mask,self.__lowbound,self.__highbound,self.__binary_element)
-                        # end = tm.time();print "rescall {}".format(end-start)
+                        image,roi_mask = rescale(image,roi_mask,factor,self.__binary_element)
                     if self.__rotate:
-                        # start = tm.time()
-                        image, roi_mask = rotate(image,roi_mask,self.__angle)
-                        # end = tm.time();print "rotate {}".format(end-start)
+                        image, roi_mask = rotate(image,roi_mask,rot_angle)
                     try:
-                        # start = tm.time()
                         r1,r2 = np.transpose(np.nonzero(roi_mask))[0] #find roi in image after transformations
-                        # end = tm.time(); print"transpose {}".format(end-start)
                     except Exception as e:
                         logger.error("error")
-                    # start = tm.time()
                     patch = crop_patch(image,r1,r2,self.__w)
-                    # end = tm.time();print "crop {}".format(end-start)
                     if self.__flip:
-                        # start = tm.time()
-                        patch = flip_patch(patch,self.__flip_chance)
-                        # end = tm.time();print "flip {}".format(end-start)
-                    patch_dict[contrast + '_' + view].append(patch)
+                        patch = flip_patch(patch,self.__flip_chance,randlr,randud)
+                    patch_dict[view].append(patch)
+                    image_dict.append(image)
                     #plt_image_patch(image, patch, r1, r2)
-            #start = tm.time()
-            for x, y in product(self.__contrasts, self.__views):
-                sample = patch_dict[x + '_' + y]
+            for x in  self.__views:
+                sample = patch_dict[x]
                 samples.append(sample)
             self.__input_queue.task_done()
             self.__output_queue.put(samples)
-            #end = tm.time();print "queue out {}".format(end-start)
         self.__output_queue.close()
-
 
 if __name__ == "__main__":
     from data_containers import load_image
