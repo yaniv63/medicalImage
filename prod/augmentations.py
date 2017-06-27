@@ -103,7 +103,7 @@ class AugmentationWorker(object):
             self.__angle = aug_args['rot_angle']
         else:
             self.__rotate = False
-        self.__pool = Pool(1)
+        self.__pool = Pool(5)
 
     def start_calc(self):
         self.__pool.apply_async(self.worker_augmentation())

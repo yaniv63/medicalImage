@@ -53,7 +53,6 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16)
-    #train_generator = combined_generator(positive_list, negative_list, train_images,contrast_list,view_list)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
     logger.info("training combined model")
@@ -91,36 +90,38 @@ for train_index, test_index in kf.split(data):
     test_person = data[test_index][0][0][0]
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-    # for i,(contrast_type,view_type) in enumerate(product(MR_modalities,view_list)):
-    #     name="{}_{}_test_{}".format(contrast_type,view_type,test_person)
-    #     logger.info("training model {}".format(name))
-    #     runs = []
-    #     predictor= one_predictor_model(index = i)
-    #     optimizer = SGD(lr=0.01, nesterov=True)
-    #     predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    #     history = train(predictor,train_d,val_d,view_type,contrast_type, 0, name=name)
-    #     runs.append(history.history)
+    for i,view_type in enumerate(view_list):
+        name="{}_test_{}".format(view_type,test_person)
+        logger.info("training model {}".format(name))
+        runs = []
+        predictor= one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index = i)
+        optimizer = SGD(lr=0.01, nesterov=True)
+        predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+        history = train_combined(predictor, train_d, val_d, MR_modalities, [view_type],
+                                 name=name)
+        #history = train(predictor,train_d,val_d,view_type,contrast_type, 0, name=name)
+        runs.append(history.history)
+
+        with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
+                pickle.dump(runs, fp)
+        plot_training(runs,name = name)
+
+    # optimizer = SGD(lr=0.01, nesterov=True)
+    # combined_model = n_predictors_combined_model(N_mod = 4, img_rows = 33, img_cols = 33,n=len(view_list))
+    # #combined_model = n_parameters_combined_model(n=len(MR_modalities) * len(view_list))
+    # layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
     #
-    #     with open(run_dir + 'cross_valid_stats_{}_{}_test_{}.lst'.format(view_type,contrast_type,test_person), 'wb') as fp:
-    #             pickle.dump(runs, fp)
-    #     plot_training(runs,name = name)
-
-    optimizer = SGD(lr=0.01, nesterov=True)
-    combined_model = n_predictors_combined_model(N_mod = 4, img_rows = 33, img_cols = 33,n=len(view_list))
-    #combined_model = n_parameters_combined_model(n=len(MR_modalities) * len(view_list))
-    layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
-
-    dr = '/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/'
+    # dr = '/media/sf_shared/src/medicalImaging/tmp/tm2/train_adadelta/multimodel/'
     # for i,(contrast,view) in enumerate(product(MR_modalities,view_list)):
-    #     print test_person
-    #     name="{}_{}_test_{}".format(contrast,view,test_person)
-    #     a = dr + 'model_{}_fold_{}.h5'.format(name,0)
-    #     layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
+    # #     print test_person
+    # #     name="{}_{}_test_{}".format(contrast,view,test_person)
+    # #     a = dr + 'model_{}_fold_{}.h5'.format(name,0)
+    # #     layer_dict["Seq_{}".format(i)].load_weights(a, by_name=True)
     #     layer_dict["Seq_{}".format(i)].trainable = False
-
-    combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    history = train_combined(combined_model, train_d, val_d, MR_modalities, view_list, "combined_"+str(test_person))
-    with open(run_dir + 'cross_valid_stats_multimodel_{}.lst'.format(test_person), 'wb') as fp:
-        pickle.dump(history.history, fp)
-
-    combined_model.save_weights(weight_path+'combined_weights_{}.h5'.format(test_person))
+    #
+    # combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    # history = train_combined(combined_model, train_d, val_d, MR_modalities, view_list, "combined_"+str(test_person))
+    # with open(run_dir + 'cross_valid_stats_multimodel_{}.lst'.format(test_person), 'wb') as fp:
+    #     pickle.dump(history.history, fp)
+    #
+    # combined_model.save_weights(weight_path+'combined_weights_{}.h5'.format(test_person))
