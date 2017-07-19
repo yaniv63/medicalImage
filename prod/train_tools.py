@@ -5,7 +5,7 @@ import logging
 from itertools import product
 from collections import defaultdict
 
-
+from train_proccesses import TrainGenerator
 from paths import get_run_dir
 from create_patches import extract_patch
 
@@ -103,6 +103,8 @@ def combined_generator(positive_list,negative_list,data,contrasts,views,batch_si
                 sample = np.array([flip_patch(x) for x in sample])
                 samples.append(np.expand_dims(sample,1))
             yield (samples,labels)
+        if only_once:
+            break
 
 def calc_batch_params(patch_list,batch_size):
     half_batch = batch_size / 2
@@ -123,17 +125,36 @@ def aggregate_genrated_samples(pos_list,neg_list,data,view):
 
     return (np.array(samples), np.array(labels))
 
+#
+# def combined_aggregate_genrated_samples(pos_list,neg_list,data,contrast_list,view_list):
+#     samples = []
+#     labels = []
+#     for batch_samples,batch_labels in combined_generator(pos_list,neg_list,data,contrast_list,view_list,only_once=True):
+#         if len(samples) == 0:
+#             samples = batch_samples
+#         else:
+#             samples = [np.concatenate((samples[i], batch_samples[i])) for i in range(len(batch_samples))]
+#         labels.extend(batch_labels)
+#     return samples,labels
 
-def combined_aggregate_genrated_samples(pos_list,neg_list,data,contrast_list,view_list):
+def combined_aggregate_genrated_samples(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args):
     samples = []
     labels = []
-    for batch_samples,batch_labels in combined_generator(pos_list,neg_list,data,contrast_list,view_list,only_once=True):
+    generator = TrainGenerator(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args)
+    _,batch_num = calc_batch_params(positive_list,batch_size)
+    gen = generator.get_generator()
+    for index,(batch_samples,batch_labels) in enumerate(gen):
         if len(samples) == 0:
             samples = batch_samples
         else:
             samples = [np.concatenate((samples[i], batch_samples[i])) for i in range(len(batch_samples))]
         labels.extend(batch_labels)
+        if index>=batch_num-1:
+            break
+    gen.close()
     return samples,labels
+
+
 
 def create_callbacks(name,fold):
     save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_loss',
@@ -143,6 +164,6 @@ def create_callbacks(name,fold):
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
                  format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
                         logs['val_fmeasure'])))
-    reducelr = ReduceLR(name,fold,0.5,patience=15)
+    reducelr = ReduceLR(name,fold,0.8,patience=15)
     mycallbacks = [print_logs,save_weights,reducelr]
     return mycallbacks

@@ -4,9 +4,10 @@ Created on Mon Dec 26 16:42:11 2016
 
 @author: yaniv
 """
-from keras.layers import Dense,Input,merge, Convolution2D, LeakyReLU, MaxPooling2D, Dropout, Flatten
+from keras.layers import Dense,Input,merge, Convolution2D, LeakyReLU, MaxPooling2D, Dropout, Flatten,Layer
 from keras.models import Model, Sequential
 from keras.regularizers import l2
+import keras.backend as K
 import numpy as np
 
 def create_smodel(N_mod, img_rows, img_cols, index=0):
@@ -43,6 +44,11 @@ def one_predictor_model(N_mod = 1, img_rows = 33, img_cols = 33,index=0):
     predictor.add(Dense(1,activation='sigmoid',name='out{}'.format(index),W_regularizer='l2',b_regularizer='l2'))
     return predictor
 
+def gating_model(N_exp,N_mod, img_rows, img_cols):
+    gate = create_smodel(N_exp*N_mod, img_rows, img_cols, index='gate')
+    gate.add(Dense(16, name='dense_gate',W_regularizer='l2',b_regularizer='l2'))
+    gate.add(Dense(N_exp,activation='softmax',name='out_gate',W_regularizer='l2',b_regularizer='l2'))
+    return gate
 
 def two_predictors_combined_model():
     
@@ -127,3 +133,23 @@ def n_parameters_combined_model(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
     return model
 
 
+def n_experts_combined_model(N_mod = 4, img_rows = 33, img_cols = 33,n=3):
+    predictors = []
+    decisions = []
+    data = []
+
+    for i in range(n):
+        predictors.append(one_predictor_model(N_mod, img_rows, img_cols,index=i))
+        data.append(Input(shape=(N_mod, img_rows, img_cols),name='input{}'.format(i)))
+        decisions.append(predictors[i](data[i]))
+
+    gate = gating_model(N_exp=n,N_mod = 4, img_rows = 33, img_cols = 33)
+    merged_input = merge(inputs=data,mode='concat',concat_axis=1)
+    merged_decisions = merge(inputs=decisions,mode='concat',concat_axis=1)
+
+    coefficients = gate(merged_input)
+    weighted_prediction = merge(inputs=[coefficients,merged_decisions],mode='dot',concat_axis=1)
+
+
+    model = Model(input=data, output=weighted_prediction)
+    return model
