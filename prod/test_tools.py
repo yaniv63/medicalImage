@@ -29,22 +29,26 @@ def patch_image(images, mask,contrasts, views,  vol_shape, output_q, w=16):
         for j, k in voxel_list:
             if mask[i,j,k] and can_extract_patch(vol_shape, i, j, k, w):
                 index_list.append((i, j, k))
-                for contrast, view in product(contrasts, views):
-                    patch = extract_patch(images[contrast], view, (i,j,k), w)
-                    patch_dict[contrast+'_'+view].append(patch)
+                for view in views:
+                    patch_list = []
+                    for contrast in contrasts:
+                        patch = extract_patch(images[contrast], view, (i, j, k), w)
+                        patch_list.append(patch)
+                    patch_dict[view].append(patch_list)
+                # for contrast, view in product(contrasts, views):
+                #     patch = extract_patch(images[contrast], view, (i,j,k), w)
+                #     patch_dict[contrast+'_'+view].append(patch)
         if len(index_list) > 0:
-            for c, v in product(contrasts, views):
-                sample = np.array(patch_dict[c+'_'+v])
-                samples.append(np.expand_dims(sample,1))
+            for v in views:
+                sample = np.array(patch_dict[v])
+                samples.append(sample)
             output_q.put((index_list, samples))
-            logger.info("put layer {}".format(i))
     output_q.put((None,None))
     output_q.close()
     logger.info("finish create patch process ")
 
 
-
-def model_pred(weight_dir,input_q,output_q,args,unimodel=False):
+def model_pred(weight_dir, input_q, output_q, args, unimodel=False):
     logger.info("start predict process")
     logger.info("loading model")
     if unimodel:
@@ -60,12 +64,11 @@ def model_pred(weight_dir,input_q,output_q,args,unimodel=False):
         curr_layer = indexes[0][0]
         predictions = model.predict(patches)
         output_q.put((indexes,predictions))
-        logger.info("predicted layer {} ".format(curr_layer))
+        #logger.info("predicted layer {} ".format(curr_layer))
         input_q.task_done()
     output_q.put((indexes, patches))
     output_q.close()
     logger.info("finish predict process")
-
 
 
 def get_segmentation(vol_shape, input_q, output_queue, threshold=0.5):
@@ -82,7 +85,7 @@ def get_segmentation(vol_shape, input_q, output_queue, threshold=0.5):
             if pred[index] > threshold:
                 segmentation[i, j, k] = 1
             prob_plot[i, j, k] = pred[index]
-        logger.info("segmented layer {}".format(curr_layer))
+        #logger.info("segmented layer {}".format(curr_layer))
         input_q.task_done()
     output_queue.put((segmentation,prob_plot))
     output_queue.close()
@@ -96,16 +99,20 @@ def load_unimodel(weight_dir,args):
 
     model = one_predictor_model()
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    model.load_weights(weight_dir + 'model_{}_{}_fold_{}.h5'.format(args['contrast'],args['view'],args['fold']))
+    model.load_weights(weight_dir + 'model_{}_fold_{}.h5'.format(args['name'],args['fold']))
     return model
 
 
 def load_model(weight_dir,args):
-    from multi_predictors_combined import n_predictors_combined_model
+    from multi_predictors_combined import n_predictors_combined_model,n_parameters_combined_model,n_experts_combined_model
     from keras.optimizers import SGD
 
     optimizer = SGD(lr=0.01,nesterov=True)
-    combined_model = n_predictors_combined_model(n=args['n'])
+    #combined_model = n_predictors_combined_model(n=args['n'])
+    #combined_model = n_parameters_combined_model(n=args['n'])
+    combined_model = n_experts_combined_model(n=args['n'])
     combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    combined_model.load_weights(weight_dir + 'combined_weights.h5')
+    combined_model.load_weights(weight_dir + 'combined_weights_{}.h5'.format(args['test_person']))
     return combined_model
+
+

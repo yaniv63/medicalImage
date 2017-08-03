@@ -60,7 +60,7 @@ def collect_batch(pos_queue,neg_queue,batch_queue,batch_size,event,predictor_num
 class TrainGenerator(object):
 
     def __initialize_proccesses(self):
-        max_size = 10000
+        max_size = 100
         batch_q = JoinableQueue(max_size)
         pos_index_q = JoinableQueue(max_size)
         neg_index_q = JoinableQueue(max_size)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     data,positive_list, negative_list = load_all_data(PersonTrainList,contrasts)
     w=16
-    batch_size = 128
+    batch_size = 256
     gen = TrainGenerator(data,positive_list,negative_list,contrasts,views,batch_size,w)
     gen2 = gen.get_generator()
     old_gen = combined_generator(positive_list,negative_list,data,contrasts,views,batch_size=128)

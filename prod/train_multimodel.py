@@ -5,7 +5,6 @@ Created on Wed Dec 21 19:32:39 2016
 @author: yaniv
 """
 # create logger
-from tensorflow.python.ops.data_flow_ops import _as_name_list
 
 from paths import *
 from prod.logging_tools import get_logger
@@ -20,7 +19,7 @@ from sklearn.model_selection import KFold
 import sys
 
 
-from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model,n_parameters_combined_model,n_experts_combined_model
+from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model,n_parameters_combined_model,n_experts_combined_model,n_experts_combined_model_gate_parameters
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
     , calc_epoch_size,combined_aggregate_genrated_samples
 from data_containers import load_data,load_all_data
@@ -47,11 +46,12 @@ def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,n
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
     return history
 
-def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=128):
+def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):
 
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
+    PersonTrainList = [(1,3),(1,2)]
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
@@ -60,9 +60,10 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
-    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=300, callbacks=callbacks,
+    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
                                   validation_data=val_set,nb_val_samples=val_size)
     gen.close()
+    train_generator.close()
     # confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(0))
     # calc_dice(confusion_mat, "individual val {}".format(0))
     return history
@@ -97,7 +98,8 @@ for train_index, test_index in kf.split(data):
         runs = []
         #predictor= one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index = i)
  #       a = n_parameters_combined_model(N_mod = 4, img_rows = 33, img_cols = 33,n = 3)
-        predictor = n_experts_combined_model(n=3,N_mod = 4, img_rows = 33, img_cols = 33)
+       # predictor = n_experts_combined_model(n=3,N_mod = 4, img_rows = 33, img_cols = 33)
+        predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
         optimizer = SGD(lr=0.01, nesterov=True)
         predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
         history = train_combined(predictor, train_d, val_d, MR_modalities, view_list,

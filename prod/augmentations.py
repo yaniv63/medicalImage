@@ -57,8 +57,15 @@ def crop_patch(image,r1,r2,w):
     indexes = np.ix_(x,y) #choose patch indices left for rows,right for columns
     try:
         patch = image[indexes]
-    except Exception as e:
-        raise e
+    except IndexError as e:
+        # a = np.pad(image, ((0, 0), (0, y[-1] - (image.shape[1] - 1))), 'edge')
+        # patch = crop_patch(a, r1, r2, w)
+        index = 1 if '1' in e.args[0].split() else 0
+        if index == 1:
+            a = np.pad(image, ((0, 0), (0, y[-1] - (image.shape[1] - 1))), 'edge')
+        else:
+            a = np.pad(image, ((0, x[-1] - (image.shape[0] - 1)), (0, 0)), 'edge')
+        patch = crop_patch(a, r1, r2, w)
     return patch
 
 def get_image(volume,view,i,j,k):
