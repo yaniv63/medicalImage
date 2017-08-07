@@ -134,12 +134,18 @@ def n_predictors_combined_model(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
 
 def n_parameters_combined_model(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
     predictors = []
-    params = []
+    denses = []
+    denses2 = []
+    params =[]
     data = []
+
     for i in range(n):
         predictors.append(create_smodel(N_mod, img_rows, img_cols,index=i))
         data.append(Input(shape=(N_mod, img_rows, img_cols), name='input{}'.format(i)))
-        params.append(predictors[i](data[i]))
+        denses.append(predictors[i](data[i]))
+        denses2.append(Dense(16, name='dense2_{}'.format(i), W_regularizer="l2")(denses[i]))
+        params.append(LeakyReLU(name='params_{}'.format(i))(denses2[i]))
+
     merged = merge(inputs=params, mode='concat', concat_axis=1)
     dense1 = Dense(16, name='merge_dense1', W_regularizer='l2')(merged)
     relu1 = LeakyReLU(name='merge_relu1')(dense1)
@@ -206,3 +212,8 @@ def test_coefficients_model():
     intermediate_layer_model = Model(input=model.input,
                                      output=model.get_layer(layer_name).output)
     intermediate_output = intermediate_layer_model.predict(data)
+
+
+# a = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
+# from keras.utils.visualize_util import plot
+# plot(a,to_file='gate_model.png',show_layer_names=True,show_shapes=True)
