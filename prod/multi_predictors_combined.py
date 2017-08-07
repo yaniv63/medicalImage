@@ -40,22 +40,25 @@ def create_smodel(N_mod, img_rows, img_cols, index=0):
 
 def one_predictor_model(N_mod=1, img_rows=33, img_cols=33, index=0):
     predictor = create_smodel(N_mod, img_rows, img_cols, index)
-    predictor.add(Dense(16,name='dense2_{}'.format(index), w_regularizer="l2"))
+    predictor.add(Dense(16,name='dense2_{}'.format(index), W_regularizer='l2'))
     predictor.add(LeakyReLU(name='perception_{}'.format(index)))
-    predictor.add(Dense(1, activation='sigmoid', name='out{}'.format(index), w_regularizer="l2"))
+    predictor.add(Dense(1, activation='sigmoid', name='out{}'.format(index), W_regularizer='l2'))
     return predictor
 
 def gating_model(N_exp,N_mod, img_rows, img_cols):
     gate = create_smodel(N_exp*N_mod, img_rows, img_cols, index='gate')
     gate.add(Dense(16, name='dense_gate',W_regularizer='l2'))
+    gate.add(LeakyReLU(name='leakyrelu_gate'))
     gate.add(Dense(N_exp,activation='softmax',name='out_gate',W_regularizer='l2'))
     return gate
 
 def gating_model_use_parameters(N_exp):
     input = Input(shape=(N_exp*16,))
     dense1 = Dense(16, name='dense1_gate', W_regularizer="l2",input_shape=(48,))(input)
-    dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(dense1)
-    dense3 = Dense(N_exp, activation='softmax', name='out_gate', W_regularizer="l2")(dense2)
+    relu1 = LeakyReLU()(dense1)
+    dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(relu1)
+    relu2 = LeakyReLU()(dense2)
+    dense3 = Dense(N_exp, activation='softmax', name='out_gate', W_regularizer="l2")(relu2)
 
     model = Model(input=input,output=dense3)
     return model
@@ -138,7 +141,11 @@ def n_parameters_combined_model(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
         data.append(Input(shape=(N_mod, img_rows, img_cols), name='input{}'.format(i)))
         params.append(predictors[i](data[i]))
     merged = merge(inputs=params, mode='concat', concat_axis=1)
-    out = Dense(1, activation='sigmoid',W_regularizer=l2(0.01))(merged)
+    dense1 = Dense(16, name='merge_dense1', W_regularizer='l2')(merged)
+    relu1 = LeakyReLU(name='merge_relu1')(dense1)
+    dense2 = Dense(16, name='merge_dense2', W_regularizer='l2')(relu1)
+    relu2 = LeakyReLU(name='merge_relu2')(dense2)
+    out = Dense(1, activation='sigmoid',W_regularizer=l2(0.01))(relu2)
     model = Model(input=data, output=out)
     return model
 
@@ -192,6 +199,10 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
     return model
 
 
-a = n_experts_combined_model_gate_parameters()
-from keras.utils.visualize_util import plot
-plot(a, to_file='model3.png',show_shapes=True,show_layer_names=True)
+def test_coefficients_model():
+    model = n_experts_combined_model_gate_parameters(n=3)  # create the original model
+    model.load_weights()
+    layer_name = 'out_gate'
+    intermediate_layer_model = Model(input=model.input,
+                                     output=model.get_layer(layer_name).output)
+    intermediate_output = intermediate_layer_model.predict(data)
