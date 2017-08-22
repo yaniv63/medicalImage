@@ -9,7 +9,6 @@ from multiprocessing import Pool
 logger = logging.getLogger('root')
 import time as tm
 
-
 def plt_image_patch(image,patch,r1=None,r2=None):
     print r1, r2
     import matplotlib.pylab as plt
@@ -210,35 +209,65 @@ if __name__ == "__main__":
     import matplotlib.pylab as plt
     import matplotlib
 
-    def plot_image_mask(image,mask):
-        masked = np.ma.masked_where(mask == 0, mask)
-        plt.figure();plt.imshow(image, cmap=matplotlib.cm.gray)
-        plt.imshow(masked, 'jet', alpha=.7)
+    # def plot_image_mask(image,mask):
+    #     masked = np.ma.masked_where(mask == 0, mask)
+    #     plt.figure();plt.imshow(image, cmap=matplotlib.cm.gray)
+    #     plt.imshow(masked, 'jet', alpha=.7)
+    #
+    # def test_rescale(test_image,test_mask):
+    #     plot_image_mask(test_image, test_mask)
+    #     image, mask = rescale(test_image, test_mask, 1.0, 1.0)
+    #     plot_image_mask(image, mask)
+    #     image, mask = rescale(test_image, test_mask, 0.8, 0.8)
+    #     plot_image_mask(image, mask)
+    #     image, mask = rescale(test_image, test_mask, 1.2, 1.2)
+    #     plot_image_mask(image, mask)
+    #     image, mask = rescale(test_image, test_mask, 0.8, 1.2)
+    #     plot_image_mask(image, mask)
+    #     plt.show()
 
-    def test_rescale(test_image,test_mask):
-        plot_image_mask(test_image, test_mask)
-        image, mask = rescale(test_image, test_mask, 1.0, 1.0)
-        plot_image_mask(image, mask)
-        image, mask = rescale(test_image, test_mask, 0.8, 0.8)
-        plot_image_mask(image, mask)
-        image, mask = rescale(test_image, test_mask, 1.2, 1.2)
-        plot_image_mask(image, mask)
-        image, mask = rescale(test_image, test_mask, 0.8, 1.2)
-        plot_image_mask(image, mask)
-        plt.show()
+    # person = 1
+    # time = 2
+    # w=16
+    # contrast  = 'FLAIR'
+    # view = 'sagittal'
+    # data = load_image(person,time,contrast)
+    # z = 100;y=146;x=72
+    # image,roi_mask = get_image(data,view,z,y,x)
+    # #test_rescale(image,roi_mask)
+    # patch = crop_patch(image,y,z,w)
+    # plot_image_mask(image,roi_mask)
+    # plt.figure();plt.imshow(patch, cmap=matplotlib.cm.gray)
+    # plt.show()
+    # raw_input("Press Enter to continue...")
+    from multiprocessing import JoinableQueue,Event,Process
+    from data_containers import load_all_data
 
-    person = 1
-    time = 1
+    input_q = JoinableQueue(10)
+    output_q = JoinableQueue(10)
+    contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
+    views = ['axial', 'coronal', 'sagittal']
+    PersonTrainList = [(1, 2)]
     w=16
-    contrast  = 'FLAIR'
-    view = 'sagittal'
-    data = load_image(person,time,contrast)
-    z = 100;y=146;x=72
-    image,roi_mask = get_image(data,view,z,y,x)
-    #test_rescale(image,roi_mask)
-    patch = crop_patch(image,y,z,w)
-    plot_image_mask(image,roi_mask)
-    plt.figure();plt.imshow(patch, cmap=matplotlib.cm.gray)
-    plt.show()
-    raw_input("Press Enter to continue...")
+    index = [1,2,19,84,96]#[1,2,81,60,126]
+    #np.random.seed(42)
+    input_q.put(index)
 
+    data, positive_list, negative_list = load_all_data(PersonTrainList, contrasts)
+    aug_args = {'flip': True, 'flip_p': 0.5, 'rescale': True, 'rescale_lowbound': 0.8,
+                'rescale_highbound': 1.2, 'rotate': True, 'rot_angle': 5}
+    event = Event()
+    worker = AugmentationWorker(input_q,output_q,data,contrasts,views,w,event,aug_args)
+    pos_p = Process(target=worker.start_calc, name='positive worker')
+    pos_p.daemon = True
+    pos_p.start()
+    patches = output_q.get()
+    for i,angle in enumerate(patches):
+        for j,contrast in enumerate(angle):
+            plt.figure()
+            plt.imshow(contrast,cmap=matplotlib.cm.gray)
+            plt.title("angle is {} contrast {}".format(views[i],contrasts[j]))
+    plt.show()
+    raw_input("wait to see")
+    worker.finish()
+    pos_p.terminate()

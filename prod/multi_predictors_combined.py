@@ -60,7 +60,7 @@ def gating_model_use_parameters(N_exp):
     relu2 = LeakyReLU()(dense2)
     dense3 = Dense(N_exp, activation='softmax', name='out_gate', W_regularizer="l2")(relu2)
 
-    model = Model(input=input,output=dense3)
+    model = Model(input=input,output=dense3,name='gate')
     return model
 
 def two_predictors_combined_model():
@@ -195,25 +195,25 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
 
     merged_decisions = merge(inputs=decisions,concat_axis=1,mode='concat')
 
-    gate = gating_model_use_parameters(N_exp=n)
-
+    #gate = gating_model_use_parameters(N_exp=n)
+    #gate
     gate_input = merge(inputs=perceptions,concat_axis=1,mode='concat')
-    coefficients = gate(gate_input)
+    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2", input_shape=(48,))(gate_input)
+    #relu1 = LeakyReLU()(dense1)
+    dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(dense1)
+    #relu2 = LeakyReLU()(dense2)
+    coefficients = Dense(n, activation='softmax', name='out_gate', W_regularizer="l2")(dense2)
+
+
+    #coefficients = gate(gate_input)
     weighted_prediction = merge([coefficients, merged_decisions],mode='dot',concat_axis=1)
 
     model = Model(input=data, output=weighted_prediction)
     return model
 
 
-def test_coefficients_model():
-    model = n_experts_combined_model_gate_parameters(n=3)  # create the original model
-    model.load_weights()
-    layer_name = 'out_gate'
-    intermediate_layer_model = Model(input=model.input,
-                                     output=model.get_layer(layer_name).output)
-    intermediate_output = intermediate_layer_model.predict(data)
 
-
-# a = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
+a = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
 # from keras.utils.visualize_util import plot
-# plot(a,to_file='gate_model.png',show_layer_names=True,show_shapes=True)
+# plot(a,to_file='gate_model2.png',show_layer_names=True,show_shapes=True)
+a.save_weights('sample_w.h5')

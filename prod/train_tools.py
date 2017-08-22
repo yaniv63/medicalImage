@@ -152,6 +152,7 @@ def combined_aggregate_genrated_samples(data, positive_list, negative_list, cont
         if index>=batch_num-1:
             break
     gen.close()
+    generator.close()
     return samples,labels
 
 
@@ -165,5 +166,6 @@ def create_callbacks(name,fold):
                  format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
                         logs['val_fmeasure'])))
     reducelr = ReduceLR(name,fold,0.8,patience=15)
-    mycallbacks = [print_logs,save_weights,reducelr]
+    early_stop = EarlyStopping(patience=50)
+    mycallbacks = [print_logs,save_weights,reducelr,early_stop]
     return mycallbacks

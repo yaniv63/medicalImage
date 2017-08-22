@@ -16,7 +16,7 @@ from test_tools import model_pred,patch_image,get_segmentation
 from plotting_tools import watch_predictions
 
 
-def test_model(weight_path,person,time,is_unimodel,contrasts,views,contrast=None,view=None):
+def test_model(weight_path,person,time,is_unimodel,contrasts,views,contrast=None,view=None,use_stats=False):
     #load test
     test_images = load_contrasts(person, time, mri_contrasts)
     wm_mask = load_wm_mask(person, time)
@@ -30,6 +30,7 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,contrast=None
     prediction_q =  JoinableQueue(BUF_SIZE)
     seg_q =  JoinableQueue(1)
     args = {}
+    args['use_stats_model'] = use_stats
     patch_p = Process(target=patch_image, args=(test_images, mask, contrasts, views, vol_shape, patch_q),
                       name='patcher')
     if is_unimodel:
@@ -42,12 +43,15 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,contrast=None
         model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,args),name='predictor')
 
 
-    seg_p = Process(target=get_segmentation,args=(vol_shape, prediction_q, seg_q),name='segmentor')
+    seg_p = Process(target=get_segmentation,args=(vol_shape, prediction_q, seg_q,args),name='segmentor')
     process_list = [patch_p, model_p, seg_p]
     for i in process_list:
         i.daemon = True
         i.start()
-    segmentation, prob_map = seg_q.get()
+    segmentation, prob_map, stats = seg_q.get()
+    if use_stats:
+        with open(run_dir + 'stats_{}.npy'.format(str(person)+'_'+str(time)), 'wb') as fp:
+            np.save(fp, stats)
     for i in process_list:
         i.join()
     logger.info("finished prediction")
@@ -67,16 +71,16 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,contrast=None
     # if is_unimodel:
     #     watch_predictions(test_images[contrasts[0]],labels,segmentation,views[0],w=16)
 test_data = {1:[(1,1),(1,2),(1,3),(1,4)],2:[(2,1),(2,2),(2,3),(2,4)],3:[(3,1),(3,2),(3,3),(3,4),(3,5)],4:[(4,1),(4,2),(4,3),(4,4)],5:[(5,1),(5,2),(5,3),(5,4)]}
-test_person=3
+test_person=1
 test = test_data[test_person]
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
 unimodel = [False,True]
-weight_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run1/'
+weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
 
 for person, time in  test:
     logger.info("checking combined model on person {} time {}".format(person,time))
-    test_model(weight_path,person,time,False,mri_contrasts,views)
+    test_model(weight_path,person,time,False,mri_contrasts,views,use_stats=True)
     # for contrast,view in product(mri_contrasts,views):
     #     logger.info("checking individual model on person {} time {} contrast {} view {}".format(person,time,contrast,view))
     #     test_model(weight_path, person, time, True,[contrast],[view])
