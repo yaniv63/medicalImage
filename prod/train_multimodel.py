@@ -60,7 +60,7 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
-    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
+    history = model.fit_generator(gen, samples_per_epoch=1024, nb_epoch=1, callbacks=callbacks,
                                   validation_data=val_set,nb_val_samples=val_size)
     gen.close()
     train_generator.close()
@@ -84,25 +84,30 @@ data = np.array([[(1,x) for x in range(1,5)],[(2,x) for x in range(1,5)],[(3,x) 
         [(5,x) for x in range(1,5)]])
 kf = KFold(n_splits=5)
 
-for train_index, test_index in kf.split(data):
-    X_train = data[train_index]
-    val_d = X_train[-1]
-    train_data =X_train[:-1].tolist()
-    train_d = [item for sublist in train_data for item in sublist]
-    test_person = data[test_index][0][0][0]
-    logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
+for view in view_list:
+    for train_index, test_index in kf.split(data):
+        X_train = data[train_index]
+        val_d = X_train[-1]
+        train_data =X_train[:-1].tolist()
+        train_d = [item for sublist in train_data for item in sublist]
+        test_person = data[test_index][0][0][0]
+        if test_person != 1:
+            continue
+        logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-    name="test_{}".format(test_person)
-    logger.info("training model {}".format(name))
-    runs = []
-    predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
-    optimizer = SGD(lr=0.01, nesterov=True)
-    predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    history = train_combined(predictor, train_d, val_d, MR_modalities, view_list,
-                             name=name)
-    runs.append(history.history)
+        name="test_{}_{}".format(test_person,view)
+        logger.info("training model {}".format(name))
+        runs = []
+        #predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
+        #predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
+        predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
+        optimizer = SGD(lr=0.01, nesterov=True)
+        predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+        history = train_combined(predictor, train_d, val_d, MR_modalities, [view],
+                                 name=name)
+        runs.append(history.history)
 
-    with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
-            pickle.dump(runs, fp)
-    plot_training(runs,name = name)
+        with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
+                pickle.dump(runs, fp)
+        plot_training(runs,name = name)
 
