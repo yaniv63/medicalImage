@@ -51,7 +51,6 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
-    PersonTrainList = [(1,3),(1,2)]
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
@@ -60,7 +59,7 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
-    history = model.fit_generator(gen, samples_per_epoch=1024, nb_epoch=1, callbacks=callbacks,
+    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
                                   validation_data=val_set,nb_val_samples=val_size)
     gen.close()
     train_generator.close()
@@ -99,11 +98,16 @@ for view in view_list:
         logger.info("training model {}".format(name))
         runs = []
         #predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
-        #predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
-        predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
+        predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
+        w_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
+        predictor.get_layer('Seq_0').load_weights(w_path+'model_test_1_axial_fold_0.h5',by_name=True)
+        predictor.get_layer('Seq_1').load_weights(w_path+'model_test_1_coronal_fold_0.h5',by_name=True)
+        predictor.get_layer('Seq_2').load_weights(w_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
+
+        #predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
         optimizer = SGD(lr=0.01, nesterov=True)
         predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-        history = train_combined(predictor, train_d, val_d, MR_modalities, [view],
+        history = train_combined(predictor, train_d, val_d, MR_modalities,view_list,
                                  name=name)
         runs.append(history.history)
 
