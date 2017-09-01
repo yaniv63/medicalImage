@@ -71,3 +71,8 @@ def create_ROI_list(input_list):
         negative_list.extend(negative)
     return np.array(positive_list),np.array(negative_list)
 
+def separate_classes_indexes(indexes,class_num):
+    classes_indexes = [[] for _ in range(class_num)]
+    for index,label in indexes:
+        classes_indexes[label].append(index)
+    return classes_indexes
