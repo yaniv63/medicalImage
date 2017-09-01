@@ -6,6 +6,7 @@ from itertools import product
 from collections import defaultdict
 
 from train_proccesses import TrainGenerator
+from train_proccesses_gate import TrainGeneratorMultiClass,TrainGeneratorMultiClassAggregator
 from paths import get_run_dir
 from create_patches import extract_patch
 
@@ -169,3 +170,22 @@ def create_callbacks(name,fold):
     early_stop = EarlyStopping(patience=50)
     mycallbacks = [print_logs,save_weights,reducelr,early_stop]
     return mycallbacks
+
+def saperate_set_major_minor(set, minor_size=0.1, permute=True):
+    if permute:
+        set = np.random.permutation(set)
+    set_size = len(set)
+    major_limit =set_size - int(set_size*(minor_size))
+    major = set[:major_limit]
+    minor = set[major_limit:]
+    return major,minor
+
+def combined_aggregate_genrated_samples_multiclass(data, classes_indexes, contrasts, views, batch_size,w, aug_args):
+    generator = TrainGeneratorMultiClassAggregator(data, classes_indexes, contrasts, views, batch_size,w,1, aug_args,random_batches=False,concat_batch=False)
+    gen = generator.get_generator()
+    samples,labels = gen.next()
+    samples = np.array(samples)
+    logger.info("took all the samples")
+    gen.close()
+    generator.close()
+    return samples,labels
