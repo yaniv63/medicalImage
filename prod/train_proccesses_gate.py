@@ -25,6 +25,7 @@ def batch_generator(batch_queue,event,concat=True):
     logger.info("finish batch generator")
 
 def random_batch_indexes(class_indexes_set,classes_indexes_queues,event):
+    import time
     logger.debug("start random_batch_indexes")
     index_lists =[ [] for _ in range(len(class_indexes_set))]
     smallest_set =min([len(set) for set in class_indexes_set])
@@ -32,8 +33,13 @@ def random_batch_indexes(class_indexes_set,classes_indexes_queues,event):
         for i,class_index in enumerate(class_indexes_set):
             index_lists[i] =  np.random.permutation(class_index).tolist()
         for index in range(smallest_set):
+            time.sleep(0.05)
             for j,q in enumerate(classes_indexes_queues):
+                #logger.debug("before put q {} q size {}".format(j,q.qsize()))
                 q.put(index_lists[j][index])
+                #logger.debug("after put q {} q size {}".format(j,q.qsize()))
+            #logger.debug("put all queues ")
+        #logger.debug("finish this permute ")
     for q in classes_indexes_queues:
         q.close()
     logger.info("finish random_batch_indexes")
@@ -86,7 +92,9 @@ def collect_batch(classes_queues,batch_queue,batch_size,event,predictor_num):
                     patches = class_q.get()
                     batch_lists[j].append((patches,j))
         for i in range(mod_size): #complete batch size
+            #logger.debug("before complete batch collect_batch")
             patches = classes_queues[i].get()
+            #logger.debug("after complete batch collect_batch")
             batch_lists[i].append((patches, i))
         total_patches = list(chain.from_iterable(batch_lists))
         mix_batch = np.random.permutation(total_patches)
@@ -105,7 +113,7 @@ def collect_batch(classes_queues,batch_queue,batch_size,event,predictor_num):
 class TrainGeneratorMultiClass(object):
 
     def __initialize_proccesses(self):
-        max_size = 1000
+        max_size = 10000
         batch_q = JoinableQueue(max_size)
         index_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]
         patches_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]
@@ -242,7 +250,22 @@ if __name__ == "__main__":
     from data_containers import load_all_images,separate_classes_indexes
     import time
     import numpy as np
+    from logging_tools import get_logger
+    import sys
+    run_dir = get_run_dir()
+    logger = get_logger(run_dir)
+
     logger.info("start")
+
+
+    def my_handler(type, value, tb):
+        logger.exception("Uncaught exception: {0}".format(str(value)))
+
+
+    # Install exception handler
+    sys.excepthook = my_handler
+
+
     contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
     views = ['axial', 'coronal', 'sagittal']
     PersonTrainList = [(1,2)]
@@ -256,7 +279,7 @@ if __name__ == "__main__":
     batch_size = 16
     gen = TrainGeneratorMultiClass(data, indexes_per_class, contrasts, views, batch_size, w)
     gen2 = gen.get_generator()
-    for i in range(10):
+    for i in range(3000):
         start = time.time()
         print "round {}".format(i)
         batch, labels = gen2.next()
