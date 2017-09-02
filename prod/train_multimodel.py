@@ -95,11 +95,16 @@ for k,view in enumerate(view_list):
         logger.info("training model {}".format(name))
         runs = []
         #predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
-        #predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
-        predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=k)
+        predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
+        w_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
+        predictor.get_layer('Seq_0').load_weights(w_path+'model_test_1_axial_fold_0.h5',by_name=True)
+        predictor.get_layer('Seq_1').load_weights(w_path+'model_test_1_coronal_fold_0.h5',by_name=True)
+        predictor.get_layer('Seq_2').load_weights(w_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
+
+        #predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
         optimizer = SGD(lr=0.01, nesterov=True)
         predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-        history = train_combined(predictor, train_d, val_d, MR_modalities, [view],
+        history = train_combined(predictor, train_d, val_d, MR_modalities,view_list,
                                  name=name)
         runs.append(history.history)
 

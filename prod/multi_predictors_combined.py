@@ -213,7 +213,15 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
 
 
 
-#a = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
+# a = n_experts_combined_model(n=3,N_mod=4)
 # from keras.utils.visualize_util import plot
-# plot(a,to_file='gate_model2.png',show_layer_names=True,show_shapes=True)
-#a.save_weights('sample_w.h5')
+# plot(a,to_file='gate_model_traditional.png',show_layer_names=True,show_shapes=True)
+# a.save_weights('sample_w.h5')
+#
+# def gating_model(N_exp,N_mod, img_rows, img_cols):
+#     gate = create_smodel(N_exp*N_mod, img_rows, img_cols, index='gate')
+#     gate.add(Dense(16, name='dense_gate',W_regularizer='l2'))
+#     gate.add(LeakyReLU(name='leakyrelu_gate'))
+#     gate.add(Dense(N_exp,activation='softmax',name='out_gate',W_regularizer='l2'))
+#     Input()
+#     return gate
