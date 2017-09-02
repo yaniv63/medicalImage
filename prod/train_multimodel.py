@@ -7,7 +7,7 @@ Created on Wed Dec 21 19:32:39 2016
 # create logger
 
 from paths import *
-from prod.logging_tools import get_logger
+from logging_tools import get_logger
 
 run_dir = get_run_dir()
 logger = get_logger(run_dir)
@@ -19,7 +19,7 @@ from sklearn.model_selection import KFold
 import sys
 
 
-from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model,n_parameters_combined_model,n_experts_combined_model,n_experts_combined_model_gate_parameters
+from multi_predictors_combined import one_predictor_model,n_predictors_combined_model,n_parameters_combined_model,n_experts_combined_model,n_experts_combined_model_gate_parameters
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
     , calc_epoch_size,combined_aggregate_genrated_samples
 from data_containers import load_data,load_all_data
@@ -51,21 +51,17 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
-    PersonTrainList = [(1,3),(1,2)]
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
-    #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
     val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None)
     logger.info("training combined model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
-    history = model.fit_generator(gen, samples_per_epoch=1024, nb_epoch=1, callbacks=callbacks,
+    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
                                   validation_data=val_set,nb_val_samples=val_size)
     gen.close()
     train_generator.close()
-    # confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(0))
-    # calc_dice(confusion_mat, "individual val {}".format(0))
     return history
 
 def my_handler(type, value, tb):
@@ -84,14 +80,14 @@ data = np.array([[(1,x) for x in range(1,5)],[(2,x) for x in range(1,5)],[(3,x) 
         [(5,x) for x in range(1,5)]])
 kf = KFold(n_splits=5)
 
-for view in view_list:
+for k,view in enumerate(view_list):
     for train_index, test_index in kf.split(data):
         X_train = data[train_index]
         val_d = X_train[-1]
         train_data =X_train[:-1].tolist()
         train_d = [item for sublist in train_data for item in sublist]
         test_person = data[test_index][0][0][0]
-        if test_person != 1:
+        if test_person != 1 or view != 'coronal':
             continue
         logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
@@ -100,7 +96,7 @@ for view in view_list:
         runs = []
         #predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
         #predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
-        predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
+        predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=k)
         optimizer = SGD(lr=0.01, nesterov=True)
         predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
         history = train_combined(predictor, train_d, val_d, MR_modalities, [view],

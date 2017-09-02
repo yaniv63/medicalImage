@@ -213,7 +213,7 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
 
 
 
-a = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
+#a = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
 # from keras.utils.visualize_util import plot
 # plot(a,to_file='gate_model2.png',show_layer_names=True,show_shapes=True)
-a.save_weights('sample_w.h5')
+#a.save_weights('sample_w.h5')
