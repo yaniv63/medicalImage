@@ -45,7 +45,7 @@ def train_combined(model,images,train_list,contrast_list,view_list,name,batch_si
     epoch_size = class_num * smallest_set
     val_size = len(val)
     gen = train_generator.get_generator()
-    history = model.fit_generator(gen, samples_per_epoch=10624, nb_epoch=3,nb_worker=1,validation_data=val_set,nb_val_samples=val_size, callbacks=callbacks)
+    history = model.fit_generator(gen, samples_per_epoch=10624, nb_epoch=5,nb_worker=1,validation_data=val_set,nb_val_samples=val_size, callbacks=callbacks)
     gen.close()
     train_generator.close()
     return history
