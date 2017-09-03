@@ -7,7 +7,7 @@ Created on Wed Dec 21 19:32:39 2016
 # create logger
 
 from paths import *
-from prod.logging_tools import get_logger
+from logging_tools import get_logger
 
 run_dir = get_run_dir()
 logger = get_logger(run_dir)
@@ -25,6 +25,7 @@ from plotting_tools import *
 from train_proccesses_gate2 import generator_gate
 from train_tools import saperate_set_major_minor
 
+station = 'laptop'
 
 
 def train_combined(model,images,train_list,contrast_list,view_list,name,batch_size=16):
@@ -83,37 +84,39 @@ data = np.array([[(1,x) for x in range(1,5)],[(2,x) for x in range(1,5)],[(3,x) 
         [(5,x) for x in range(1,5)]])
 kf = KFold(n_splits=5)
 
-for view in view_list:
-    for train_index, test_index in kf.split(data):
-        X_train = data[train_index]
-        val_d = X_train[-1]
-        train_data =X_train[:-1].tolist()
-        train_d = [item for sublist in train_data for item in sublist]
-        test_person = data[test_index][0][0][0]
-        if test_person != 1:
-            continue
-        logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
+for train_index, test_index in kf.split(data):
+    X_train = data[train_index]
+    val_d = X_train[-1]
+    train_data =X_train[:-1].tolist()
+    train_d = [item for sublist in train_data for item in sublist]
+    test_person = data[test_index][0][0][0]
+    if test_person != 1:
+        continue
+    logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-        name="test_{}_{}".format(test_person,view)
-        logger.info("training model {}".format(name))
-        runs = []
-        predictor = gating_model(N_exp=3, N_mod=4, img_rows=33, img_cols=33)
-        optimizer = SGD(lr=0.01, nesterov=True)
-        predictor.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', 'fmeasure'])
+    name="test_1"
+    logger.info("training model {}".format(name))
+    runs = []
+    predictor = gating_model(N_exp=3, N_mod=4, img_rows=33, img_cols=33)
+    optimizer = SGD(lr=0.01, nesterov=True)
+    predictor.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', 'fmeasure'])
 
-        PersonTrainList = [(1, 2)]
+    PersonTrainList = [(1, 2)]
+    if station == 'laptop':
         index_path = '/media/sf_shared/src/medicalImaging/stats/test1_gate_indexes.npy'
+    else:
+        index_path = '/home/ubuntu/src/medicalimage/patches/test1_gate_indexes.npy'
 
-        train_images = load_all_images(PersonTrainList, MR_modalities)
-        classes_indexes = np.load(index_path)
-        train, test = saperate_set_major_minor(classes_indexes)
+    train_images = load_all_images(PersonTrainList, MR_modalities)
+    classes_indexes = np.load(index_path)
+    train, test = saperate_set_major_minor(classes_indexes)
 
 
-        history = train_combined(predictor,train_images, train, MR_modalities,view_list,
-                                 name=name)
-        runs.append(history.history)
+    history = train_combined(predictor,train_images, train, MR_modalities,view_list,
+                             name=name)
+    runs.append(history.history)
 
-        with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
-                pickle.dump(runs, fp)
-        plot_training(runs,name = name)
+    with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
+            pickle.dump(runs, fp)
+    plot_training(runs,name = name)
 
