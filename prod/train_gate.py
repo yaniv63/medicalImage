@@ -20,52 +20,42 @@ import sys
 
 from multi_predictors_combined import gating_model
 from train_tools import create_callbacks, calc_epoch_size,combined_aggregate_genrated_samples_multiclass
-from data_containers import load_all_data,load_all_images,separate_classes_indexes
+from data_containers import load_all_data,load_all_images,separate_classes_indexes,load_index_list
 from plotting_tools import *
-from train_proccesses_gate2 import generator_gate
-from train_tools import saperate_set_major_minor
-
+#from train_proccesses_gate2 import generator_gate
+from train_proccesses_gate import TrainGeneratorMultiClass
 station = 'laptop'
 
 
-def train_combined(model,images,train_list,contrast_list,view_list,name,batch_size=16):
+def train_combined(model,train_list,val_list,contrast_list,view_list,name,batch_size=32):
 
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
+    train_indexes = load_index_list("gate_indexes_person",train_list)
+    train_images = load_all_images(train_list,contrast_list)
+    val_indexes = load_index_list("gate_indexes_person",val_list)
+    val_images = load_all_images(val_list,contrast_list)
 
-    train, val = saperate_set_major_minor(train_list)
-    indexes_per_class_tr = separate_classes_indexes(train, 3)
-    indexes_per_class_val = separate_classes_indexes(val, 3)
+    indexes_per_class_tr = separate_classes_indexes(train_indexes, 3)
+    indexes_per_class_val = separate_classes_indexes(val_indexes, 3)
 
-    train_generator = generator_gate(indexes_per_class_tr,images,  contrast_list, view_list, batch_size, w=16,predictor_num=3)
-    # val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
-    val_set = combined_aggregate_genrated_samples_multiclass(images,indexes_per_class_val,contrast_list,view_list,batch_size,w=16,aug_args=None)
+    #train_generator = generator_gate(indexes_per_class_tr,train_images,  contrast_list, view_list, batch_size, w=16,predictor_num=3)
+    train_generator = TrainGeneratorMultiClass(train_images,indexes_per_class_tr,contrast_list, view_list, batch_size, w=16)
+    gen =train_generator.get_generator()
+    val_set = combined_aggregate_genrated_samples_multiclass(val_images,indexes_per_class_val,contrast_list,view_list,batch_size,w=16,aug_args=None)
     logger.info("training combined model")
     smallest_set = min([len(set) for set in indexes_per_class_tr])
     class_num = len(indexes_per_class_tr)
-    epoch_size = class_num * smallest_set
-    val_size = len(val)
-    history = model.fit_generator(train_generator, samples_per_epoch=10624, nb_epoch=5,nb_worker=1,validation_data=val_set,nb_val_samples=val_size, callbacks=callbacks)
+    epoch_size = class_num * smallest_set - ((class_num * smallest_set) % batch_size)
+    val_size = len(val_indexes)
+    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=5,nb_worker=1,validation_data=val_set,nb_val_samples=val_size, callbacks=callbacks)
+
+    gen.close()
+    train_generator.close()
+
     return history
 
 
-# def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):
-#
-#     callbacks = create_callbacks(name, fold=0)
-#     logger.debug("creating train & val generators")
-#     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
-#     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16)
-#     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
-#     val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None)
-#     logger.info("training combined model")
-#     epoch_size = calc_epoch_size(positive_list, batch_size)
-#     val_size = calc_epoch_size(pos_val_list, batch_size)
-#     gen = train_generator.get_generator()
-#     history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
-#                                   validation_data=val_set,nb_val_samples=val_size)
-#     gen.close()
-#     train_generator.close()
-#     return history
 
 def my_handler(type, value, tb):
     logger.exception("Uncaught exception: {0}".format(str(value)))
@@ -101,18 +91,7 @@ for train_index, test_index in kf.split(data):
     optimizer = SGD(lr=0.01, nesterov=True)
     predictor.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', 'fmeasure'])
 
-    PersonTrainList = [(1, 2)]
-    if station == 'laptop':
-        index_path = '/media/sf_shared/src/medicalImaging/stats/test1_gate_indexes.npy'
-    else:
-        index_path = '/home/ubuntu/src/medicalimage/patches/test1_gate_indexes.npy'
-
-    train_images = load_all_images(PersonTrainList, MR_modalities)
-    classes_indexes = np.load(index_path)
-    train, test = saperate_set_major_minor(classes_indexes)
-
-
-    history = train_combined(predictor,train_images, train, MR_modalities,view_list,
+    history = train_combined(predictor,train_d,val_d, MR_modalities,view_list,
                              name=name)
     runs.append(history.history)
 

@@ -12,11 +12,11 @@ logger = get_logger(run_dir)
 
 from masks import get_combined_mask,load_wm_mask
 from data_containers import load_contrasts,load_lables
-from test_tools import model_pred,patch_image,get_segmentation
+from test_tools_gate import model_pred,patch_image,get_segmentation
 from plotting_tools import watch_predictions
 
 
-def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use_stats=False):
+def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use_stats=False,index_list=None):
     #load test
     test_images = load_contrasts(person, time, mri_contrasts)
     wm_mask = load_wm_mask(person, time)
@@ -41,7 +41,6 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use
         args['n']=len(views)
         args['test_person'] = person
         model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,args),name='predictor')
-
 
     seg_p = Process(target=get_segmentation,args=(vol_shape, prediction_q, seg_q,args),name='segmentor')
     process_list = [patch_p, model_p, seg_p]
@@ -71,17 +70,13 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use
     # if is_unimodel:
     #     watch_predictions(test_images[contrasts[0]],labels,segmentation,views[0],w=16)
 test_data = {1:[(1,1),(1,2),(1,3),(1,4)],2:[(2,1),(2,2),(2,3),(2,4)],3:[(3,1),(3,2),(3,3),(3,4),(3,5)],4:[(4,1),(4,2),(4,3),(4,4)],5:[(5,1),(5,2),(5,3),(5,4)]}
-test_person=5
+test_person=1
 test = test_data[test_person]
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
 unimodel = [False,True]
-weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
-
+weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run7-combine pretrained gate with pretrained experts/'
 for person, time in  test:
     logger.info("checking combined model on person {} time {}".format(person,time))
-    test_model(weight_path, person, time, False, mri_contrasts,views, use_stats=True)
-    # test_model(weight_path,person,time,False,mri_contrasts,views,use_stats=True)
-    # for contrast,view in product(mri_contrasts,views):
-    #     logger.info("checking individual model on person {} time {} contrast {} view {}".format(person,time,contrast,view))
-    #     test_model(weight_path, person, time, True,[contrast],[view])
+    test_model(weight_path, person, time, False, mri_contrasts,views, use_stats=False)
+

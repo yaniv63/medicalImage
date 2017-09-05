@@ -25,7 +25,6 @@ def batch_generator(batch_queue,event,concat=True):
     logger.info("finish batch generator")
 
 def random_batch_indexes(class_indexes_set,classes_indexes_queues,event):
-    import time
     logger.debug("start random_batch_indexes")
     index_lists =[ [] for _ in range(len(class_indexes_set))]
     smallest_set =min([len(set) for set in class_indexes_set])
@@ -33,13 +32,8 @@ def random_batch_indexes(class_indexes_set,classes_indexes_queues,event):
         for i,class_index in enumerate(class_indexes_set):
             index_lists[i] =  np.random.permutation(class_index).tolist()
         for index in range(smallest_set):
-            time.sleep(0.05)
             for j,q in enumerate(classes_indexes_queues):
-                #logger.debug("before put q {} q size {}".format(j,q.qsize()))
                 q.put(index_lists[j][index])
-                #logger.debug("after put q {} q size {}".format(j,q.qsize()))
-            #logger.debug("put all queues ")
-        #logger.debug("finish this permute ")
     for q in classes_indexes_queues:
         q.close()
     logger.info("finish random_batch_indexes")

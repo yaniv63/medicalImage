@@ -61,6 +61,16 @@ def load_patch(person,time):
             negative_list_np = pickle.load(fp2)
     return positive_list_np,negative_list_np
 
+def load_indexes_classes(file_name,person):
+    with open(patches + file_name+"_{}.npy".format(person), 'rb') as fp:
+        return np.load(fp)
+
+def load_index_list(file_name,index_list):
+    indexes = []
+    unique_list=set(x[0] for x in index_list)
+    for index in unique_list:
+        indexes.extend(load_indexes_classes(file_name,index))
+    return indexes
 
 def create_ROI_list(input_list):
     positive_list = []
