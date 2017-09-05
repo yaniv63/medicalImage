@@ -80,35 +80,34 @@ data = np.array([[(1,x) for x in range(1,5)],[(2,x) for x in range(1,5)],[(3,x) 
         [(5,x) for x in range(1,5)]])
 kf = KFold(n_splits=5)
 
-for k,view in enumerate(view_list):
-    for train_index, test_index in kf.split(data):
-        X_train = data[train_index]
-        val_d = X_train[-1]
-        train_data =X_train[:-1].tolist()
-        train_d = [item for sublist in train_data for item in sublist]
-        test_person = data[test_index][0][0][0]
-        if test_person != 1 or view != 'coronal':
-            continue
-        logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
+for train_index, test_index in kf.split(data):
+    X_train = data[train_index]
+    val_d = X_train[-1]
+    train_data =X_train[:-1].tolist()
+    train_d = [item for sublist in train_data for item in sublist]
+    test_person = data[test_index][0][0][0]
+    if test_person != 1:
+        continue
+    logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-        name="test_{}_{}".format(test_person,view)
-        logger.info("training model {}".format(name))
-        runs = []
-        #predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
-        predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
-        w_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
-        predictor.get_layer('Seq_0').load_weights(w_path+'model_test_1_axial_fold_0.h5',by_name=True)
-        predictor.get_layer('Seq_1').load_weights(w_path+'model_test_1_coronal_fold_0.h5',by_name=True)
-        predictor.get_layer('Seq_2').load_weights(w_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
+    name="test_{}".format(test_person)
+    logger.info("training model {}".format(name))
+    runs = []
+    #predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
+    predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
+    w_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
+    predictor.get_layer('Seq_0').load_weights(w_path+'model_test_1_axial_fold_0.h5',by_name=True)
+    predictor.get_layer('Seq_1').load_weights(w_path+'model_test_1_coronal_fold_0.h5',by_name=True)
+    predictor.get_layer('Seq_2').load_weights(w_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
+    predictor.get_layer('Seq_gate').load_weights(w_path+'model_test_1_sagittal_fold_0.h5')
+    #predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
+    optimizer = SGD(lr=0.01, nesterov=True)
+    predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    history = train_combined(predictor, train_d, val_d, MR_modalities,view_list,
+                             name=name)
+    runs.append(history.history)
 
-        #predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
-        optimizer = SGD(lr=0.01, nesterov=True)
-        predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-        history = train_combined(predictor, train_d, val_d, MR_modalities,view_list,
-                                 name=name)
-        runs.append(history.history)
-
-        with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
-                pickle.dump(runs, fp)
-        plot_training(runs,name = name)
+    with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
+            pickle.dump(runs, fp)
+    plot_training(runs,name = name)
 
