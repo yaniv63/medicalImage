@@ -1,3 +1,6 @@
+import sys
+from os import path
+sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 import pandas as pd
 import seaborn as sns
 import numpy as np
@@ -38,7 +41,7 @@ if purpose == 'check if relevant':
         for  person,time in index_list:
 
             w = 16
-            stats_path = '/media/sf_shared/src/medicalImaging/stats/person_stats/'  # '/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
+            stats_path = 'person_stats/'  # '/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
             stats_path += 'stats_{}_{}.npy'.format(person, time)
             stats = np.load(stats_path)
             labels = load_lables(person, time, doc_num=1)

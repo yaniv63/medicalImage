@@ -24,10 +24,10 @@ from data_containers import load_all_data,load_all_images,separate_classes_index
 from plotting_tools import *
 #from train_proccesses_gate2 import generator_gate
 from train_proccesses_gate import TrainGeneratorMultiClass
-station = 'laptop'
+station = 'dist'
 
 
-def train_combined(model,train_list,val_list,contrast_list,view_list,name,batch_size=32):
+def train_combined(model,train_list,val_list,contrast_list,view_list,name,batch_size=16):
 
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
@@ -40,7 +40,7 @@ def train_combined(model,train_list,val_list,contrast_list,view_list,name,batch_
     indexes_per_class_val = separate_classes_indexes(val_indexes, 3)
 
     #train_generator = generator_gate(indexes_per_class_tr,train_images,  contrast_list, view_list, batch_size, w=16,predictor_num=3)
-    train_generator = TrainGeneratorMultiClass(train_images,indexes_per_class_tr,contrast_list, view_list, batch_size, w=16)
+    train_generator = TrainGeneratorMultiClass(train_images,indexes_per_class_tr,contrast_list, view_list, batch_size, w=16,workers_num=3)
     gen =train_generator.get_generator()
     val_set = combined_aggregate_genrated_samples_multiclass(val_images,indexes_per_class_val,contrast_list,view_list,batch_size,w=16,aug_args=None)
     logger.info("training combined model")
@@ -48,7 +48,7 @@ def train_combined(model,train_list,val_list,contrast_list,view_list,name,batch_
     class_num = len(indexes_per_class_tr)
     epoch_size = class_num * smallest_set - ((class_num * smallest_set) % batch_size)
     val_size = len(val_indexes)
-    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=5,nb_worker=1,validation_data=val_set,nb_val_samples=val_size, callbacks=callbacks)
+    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200,nb_worker=1,validation_data=val_set,nb_val_samples=val_size, callbacks=callbacks)
 
     gen.close()
     train_generator.close()
