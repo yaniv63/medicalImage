@@ -63,6 +63,12 @@ def gating_model_use_parameters(N_exp):
     model = Model(input=input,output=dense3,name='gate')
     return model
 
+def gating_model_logistic_regression(N_exp):
+    input = Input(shape=(N_exp*16,))
+    dense = Dense(N_exp, activation='softmax', name='out_gate', W_regularizer="l2")(input)
+    model = Model(input=input,output=dense,name='gate')
+    return model
+
 def two_predictors_combined_model():
     
     init_bias = np.full(shape=(1,),fill_value=-1)
@@ -199,10 +205,10 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
     #gate
     gate_input = merge(inputs=perceptions,concat_axis=1,mode='concat')
     dense1 = Dense(16, name='dense1_gate', W_regularizer="l2", input_shape=(48,))(gate_input)
-    #relu1 = LeakyReLU()(dense1)
-    dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(dense1)
-    #relu2 = LeakyReLU()(dense2)
-    coefficients = Dense(n, activation='softmax', name='out_gate', W_regularizer="l2")(dense2)
+    relu1 = LeakyReLU()(dense1)
+    dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(relu1)
+    relu2 = LeakyReLU()(dense2)
+    coefficients = Dense(n, activation='softmax', name='out_gate', W_regularizer="l2")(relu2)
 
 
     #coefficients = gate(gate_input)
