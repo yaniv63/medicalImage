@@ -189,7 +189,7 @@ class TrainGeneratorMultiClassAggregator(object):
 
     def __initialize_proccesses(self):
         max_size = 10000
-        size = 10000#sum([len(x) for x in self.classes_index_lists])
+        size = sum([len(x) for x in self.classes_index_lists])
         set_q = JoinableQueue(max_size)
         index_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]
         patches_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]

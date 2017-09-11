@@ -40,6 +40,7 @@ if purpose == 'check if relevant':
     #
     data = np.array([[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)],
             [(5,x) for x in range(1,5)]])
+    data = [[(1,x) for x in range(1,5)]]
     for index_list in data:
         dfs = []
         for  person,time in index_list:
