@@ -19,13 +19,12 @@ import sys
 
 
 from multi_predictors_combined import gating_model
-from train_tools import create_callbacks, calc_epoch_size,combined_aggregate_genrated_samples_multiclass
+from train_tools import create_callbacks, calc_epoch_size,combined_aggregate_genrated_samples_multiclass,ReduceLR
 from data_containers import load_all_data,load_all_images,separate_classes_indexes,load_index_list
 from plotting_tools import *
 #from train_proccesses_gate2 import generator_gate
 from train_proccesses_gate import TrainGeneratorMultiClass
 station = 'dist'
-
 
 def train_combined(model,train_list,val_list,contrast_list,view_list,name,batch_size=16):
 
@@ -79,6 +78,7 @@ for train_index, test_index in kf.split(data):
     val_d = X_train[-1]
     train_data =X_train[:-1].tolist()
     train_d = [item for sublist in train_data for item in sublist]
+    #train_d = [(1,2)]
     test_person = data[test_index][0][0][0]
     if test_person != 1:
         continue
@@ -89,7 +89,7 @@ for train_index, test_index in kf.split(data):
     runs = []
     predictor = gating_model(N_exp=3, N_mod=4, img_rows=33, img_cols=33)
     optimizer = SGD(lr=0.01, nesterov=True)
-    predictor.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', 'fmeasure'])
+    predictor.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', 'fmeasure','precision','recall'])
 
     history = train_combined(predictor,train_d,val_d, MR_modalities,view_list,
                              name=name)

@@ -2,6 +2,7 @@ import numpy as np
 from itertools import chain
 from keras.utils.np_utils import to_categorical
 from multiprocessing import JoinableQueue, Event, Process
+import time
 from Queue import Empty
 from augmentations import AugmentationWorker
 from paths import *
@@ -32,18 +33,30 @@ def random_batch_indexes(class_indexes_set,classes_indexes_queues,event):
         for i,class_index in enumerate(class_indexes_set):
             index_lists[i] =  np.random.permutation(class_index).tolist()
         for index in range(smallest_set):
+       #     timdde.sleep(0.05)
             for j,q in enumerate(classes_indexes_queues):
-                q.put(index_lists[j][index])
+		if q.qsize()<1000:
+                    q.put(index_lists[j][index])
     for q in classes_indexes_queues:
         q.close()
     logger.info("finish random_batch_indexes")
 
 def batch_all_indexes(class_indexes_set,classes_indexes_queues):
     logger.debug("start batch_all_indexes")
+    index_lists =[ [] for _ in range(len(class_indexes_set))]
+    set_len = [len(set) for set in class_indexes_set]
+    for i, class_index in enumerate(class_indexes_set):
+        index_lists[i] = np.random.permutation(class_index).tolist()
+    for i in range(max(set_len)):
+        for j,q in enumerate(classes_indexes_queues):
+            if i< set_len[j] :
+                index = index_lists[j][i]
+                q.put(index)
+                #logger.info("put in queue {}".format(j))
+    # for i,index_list in enumerate(class_indexes_set):
+    #     for index in index_list:
+    #         classes_indexes_queues[i].put(index)
 
-    for i,index_list in enumerate(class_indexes_set):
-        for index in index_list:
-            classes_indexes_queues[i].put(index)
     for q in classes_indexes_queues:
         q.close()
     logger.info("finish batch_all_indexes")
@@ -56,6 +69,7 @@ def collect_all_patches(patches_queues,output_queue,size):
              for i,q in enumerate(patches_queues):
                 if q.qsize() > 0:
                     patches = q.get(True,5)
+                    #logger.info("took from queue {} ".format(i))
                     patches = np.concatenate(patches,axis=0)
                     patches_list.append(patches)
                     labels_list.append(i)
@@ -107,7 +121,7 @@ def collect_batch(classes_queues,batch_queue,batch_size,event,predictor_num):
 class TrainGeneratorMultiClass(object):
 
     def __initialize_proccesses(self):
-        max_size = 10000
+        max_size =1000
         batch_q = JoinableQueue(max_size)
         index_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]
         patches_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]
@@ -178,7 +192,7 @@ class TrainGeneratorMultiClassAggregator(object):
 
     def __initialize_proccesses(self):
         max_size = 10000
-        size = 1434
+        size = 10000#sum([len(x) for x in self.classes_index_lists])
         set_q = JoinableQueue(max_size)
         index_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]
         patches_queues = [JoinableQueue(max_size) for _ in range(self.classes_num)]
