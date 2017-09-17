@@ -1,5 +1,5 @@
 import numpy as np
-from keras.callbacks import  LambdaCallback, ModelCheckpoint,EarlyStopping
+from keras.callbacks import  LambdaCallback, ModelCheckpoint,EarlyStopping,Callback
 from keras import backend as K
 import logging
 from itertools import product
@@ -7,11 +7,30 @@ from collections import defaultdict
 
 from train_proccesses import TrainGenerator
 from train_proccesses_gate import TrainGeneratorMultiClass,TrainGeneratorMultiClassAggregator
+from keras.callbacks import  LambdaCallback, ModelCheckpoint,EarlyStopping,Callback
+
 from paths import get_run_dir
 from create_patches import extract_patch
-
 logger = logging.getLogger('root')
 run_dir =get_run_dir()
+
+
+
+
+def create_callbacks(name,fold):
+    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_loss',
+                                   save_best_only=True,
+                                   save_weights_only=True)
+    print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
+    logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
+                 format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
+                        logs['val_fmeasure'])))
+    reducelr = ReduceLR(name,fold,0.8,patience=15)
+    early_stop = EarlyStopping(patience=50)
+    mycallbacks = [print_logs,save_weights,reducelr,early_stop]
+    return mycallbacks
+
+
 
 
 class ReduceLR(EarlyStopping):
@@ -158,18 +177,7 @@ def combined_aggregate_genrated_samples(data, positive_list, negative_list, cont
 
 
 
-def create_callbacks(name,fold):
-    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_loss',
-                                   save_best_only=True,
-                                   save_weights_only=True)
-    print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
-    logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
-                 format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
-                        logs['val_fmeasure'])))
-    reducelr = ReduceLR(name,fold,0.8,patience=15)
-    early_stop = EarlyStopping(patience=50)
-    mycallbacks = [print_logs,save_weights,reducelr,early_stop]
-    return mycallbacks
+
 
 def saperate_set_major_minor(set, minor_size=0.1, permute=True):
     if permute:
@@ -182,10 +190,8 @@ def saperate_set_major_minor(set, minor_size=0.1, permute=True):
 
 def combined_aggregate_genrated_samples_multiclass(data, classes_indexes, contrasts, views, batch_size,w, aug_args):
     generator = TrainGeneratorMultiClassAggregator(data, classes_indexes, contrasts, views, batch_size,w,1, aug_args,random_batches=False,concat_batch=False)
-    gen = generator.get_generator()
-    samples,labels = gen.next()
-    samples = np.array(samples)
+    patches,experts, labels  = generator.get_set()
+    patches = np.array(patches)
     logger.info("took all the samples")
-    gen.close()
     generator.close()
-    return samples,labels
+    return patches,experts, labels

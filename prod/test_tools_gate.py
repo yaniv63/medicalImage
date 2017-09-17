@@ -113,12 +113,12 @@ def load_model(weight_dir,args):
 
     optimizer = SGD(lr=0.01,nesterov=True)
     combined_model = n_experts_combined_model(n=args['n'])
-    combined_model.get_layer('Seq_0').load_weights(weight_dir + 'model_test_1_axial_fold_0.h5')
-    combined_model.get_layer('Seq_1').load_weights(weight_dir + 'model_test_1_coronal_fold_0.h5')
-    combined_model.get_layer('Seq_2').load_weights(weight_dir + 'model_test_1_sagittal_fold_0.h5')
-    combined_model.get_layer('Seq_gate').load_weights(weight_dir + 'gate_1_2.h5')
+    # combined_model.get_layer('Seq_0').load_weights(weight_dir + 'model_test_1_axial_fold_0.h5')
+    # combined_model.get_layer('Seq_1').load_weights(weight_dir + 'model_test_1_coronal_fold_0.h5')
+    # combined_model.get_layer('Seq_2').load_weights(weight_dir + 'model_test_1_sagittal_fold_0.h5')
+    # combined_model.get_layer('Seq_gate').load_weights(weight_dir + 'gate_1_2.h5')
     combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    # combined_model.load_weights(experts_path + 'combined_weights_1.h5')
+    combined_model.load_weights(weight_dir + 'combined_weights_1.h5')
     combined_model_stats = Model(input=combined_model.input,
                       output=[combined_model.output, combined_model.get_layer("Seq_gate").get_output_at(1),
                               combined_model.get_layer("Seq_0").get_output_at(1),
