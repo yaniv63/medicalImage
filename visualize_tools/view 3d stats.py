@@ -45,7 +45,8 @@ person = 1
 time = 2
 w = 16
 
-stats_path = '/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
+stats_path ='/media/sf_shared/src/medicalImaging/prod/runs/14_09_2017_13_14 - hard_batching/' #'/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
+stats_path += 'stats_{}_{}.npy'.format(person,time)
 stats = np.load(stats_path)
 labels = load_lables(person,time,doc_num= 1)
 
@@ -72,22 +73,22 @@ raw_input("wait to see")
 
 
 
-f, axarr = plt.subplots(1, 3,figsize=(15,8))
-f.suptitle("tsne embedding")
-#plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+# f, axarr = plt.subplots(1, 3,figsize=(15,8))
+# f.suptitle("tsne embedding")
+# #plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+#
+# less_stats2 = [stat for i,stat in enumerate(stats) if i%20==0]
+#
+# for i in range(3):
+#     vectors = [stat[1][4+i] for stat in less_stats2]
+#     tsne = TSNE(n_components=2, init='pca', random_state=0)
+#     Y = tsne.fit_transform(vectors)
+#     axarr[i].scatter(Y[:, 0], Y[:, 1], cmap=plt.cm.Spectral)
+#     axarr[i].set_title('view: {}'.format(views[i]))
 
-less_stats2 = [stat for i,stat in enumerate(stats) if i%20==0]
-
-for i in range(3):
-    vectors = [stat[1][4+i] for stat in less_stats2]
-    tsne = TSNE(n_components=2, init='pca', random_state=0)
-    Y = tsne.fit_transform(vectors)
-    axarr[i].scatter(Y[:, 0], Y[:, 1], cmap=plt.cm.Spectral)
-    axarr[i].set_title('view: {}'.format(views[i]))
 
 
-
-f, axarr = plt.subplots(1, 3,figsize=(15,8))
+f, axarr = plt.subplots(1, 1,figsize=(15,8))
 f.suptitle("pca embedding")
 color_dict={(0,0):'b',(1,1):'r',(0,1):'y',(1,0):'g'}
 probs=[]
@@ -98,18 +99,20 @@ for i,stat in enumerate(stats):
     stat_labels.append(labels[stat[0]])
     probs.append(stat[1][0])
     decisions.append(stat[1][1:4])
-    prediction.append(np.dot(probs[i],decisions))
+    prediction.extend(np.dot(probs[i],decisions))
 
 final_predictions = [1 if x[0]>0.5 else 0 for x in prediction]
 colors = [color_dict[x] for x in zip(stat_labels,final_predictions)]
 
-for i in range(3):
-    vectors = [stat[1][4+i] for stat in stats]
-    pca = PCA(n_components=2)
-    Y = pca.fit_transform(vectors)
-    print(pca.explained_variance_ratio_)
-    axarr[i].scatter(Y[:, 0], Y[:, 1], cmap=plt.cm.Spectral,color=colors)
-    axarr[i].set_title('view: {}'.format(views[i]))
+vectors = [(stat[1][0][0],stat[1][0][1]) for stat in less_stats if labels[stat[0]] == 1]
+xs = [x for x,y in vectors]
+ys = [y for x,y in vectors]
+# pca = PCA(n_components=2)
+# Y = pca.fit_transform(vectors)
+# print(pca.explained_variance_ratio_)
+#axarr[i].scatter(Y[:, 0], Y[:, 1], cmap=plt.cm.Spectral,color=colors)
+axarr.scatter(xs,ys, cmap=plt.cm.Spectral, color=colors)
+axarr.set_title('precentage axial coronal')
 import matplotlib.patches as mpatches
 blue_patch = mpatches.Patch(color='blue', label='TN')
 red_patch = mpatches.Patch(color='red', label='TP')

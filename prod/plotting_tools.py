@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pylab import rcParams
 rcParams['figure.figsize'] = 10, 10

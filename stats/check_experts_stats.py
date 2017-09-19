@@ -8,10 +8,13 @@ from itertools import chain
 from prod.data_containers import load_lables
 import matplotlib.pyplot as plt
 import ast
+from keras.utils.np_utils import to_categorical
 
 # person = 1
 # time = 2
 purpose = 'check if relevant'
+expert_labeling = 'hard'
+exponent_soft = 10
 
 if purpose == 'check if relevant':
 
@@ -31,19 +34,10 @@ if purpose == 'check if relevant':
             exp1, exp2 = experts[1], experts[2]
         return abs(exp1 - exp2) > 0.1
 
-    # def part_bigger_than_thersh(num,den,thresh):
-    #     return (abs(1-(float(num)/den)) < thresh)
-    #
-    # def exist_difference_between_experts(row):
-    #     experts = [row['exp1'], row['exp2'], row['exp3']]
-    #     experts.sort()
-    #     return not (part_bigger_than_thersh(experts[0],experts[1],0.1) and
-    #                 part_bigger_than_thersh(experts[1],experts[2],0.1))
-    #
-    #
     data = np.array([[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)],
-            [(5,x) for x in range(1,5)]])
-    data = [[(1,x) for x in range(1,5)]]
+            [(5,x) for x in range(1,5)],[(1,x) for x in range(1,5)]])
+    #data = [[(1,x) for x in range(1,5)]]
+    all_dfs = []
     for index_list in data:
         dfs = []
         for  person,time in index_list:
@@ -80,17 +74,33 @@ if purpose == 'check if relevant':
         total_df['exp_correct']  = total_df.apply(experts_decided_correct,axis=1)
         total_df['differece_between_exp'] = total_df.apply(exist_difference_between_experts,axis=1)
         total_df['relevant'] = total_df.apply(lambda row: row['exp_correct'] == 1 and row['differece_between_exp'] ==1 ,axis=1)
-
-        def classify_expert(row):
+        #total_df.to_csv('/media/sf_shared/src/medicalImaging/stats/test1_stats.csv')
+        def hard_decision_expert(row):
             experts = [row['exp1'],row['exp2'],row['exp3']]
             if row['labels'] == 0:
-                return np.argmin(experts)
+                max_expert =  np.argmin(experts)
             else:
-                return np.argmax(experts)
+                max_expert  = np.argmax(experts)
+            x= to_categorical([max_expert],3).tolist()
+            return x
+
+        def soft_decision_expert(row):
+            experts = [row['exp1'],row['exp2'],row['exp3']]
+            if row['labels'] == 0:
+                experts = [ 1-expert for expert in experts]
+            exponent_experts = [expert**exponent_soft for expert in experts]
+            normal_experts = [expert/float(sum(exponent_experts)) for expert in exponent_experts]
+            # print  "experts " , experts
+            # print "normal " , normal_experts
+            return normal_experts
 
         df2 = pd.DataFrame(total_df[['indexes','exp1','exp2','exp3','labels']][total_df['relevant']==True])
-        df2['expert class'] = df2.apply(classify_expert,axis=1)
-
+        if expert_labeling == 'soft':
+            method = soft_decision_expert
+        elif expert_labeling == 'hard':
+            method = hard_decision_expert
+        df2['experts labels'] = df2.apply(method, axis=1)
+        all_dfs.append(df2)
         indexes = []
         outer = False
         for i,row in df2.iterrows():
@@ -99,14 +109,15 @@ if purpose == 'check if relevant':
                 index = (person,time,index[0],index[1],index[2])
             else:
                 index = row['indexes']
+            true_label = row['labels']
 
-            exp_class = row['expert class']
-            indexes.append((index, exp_class))
+            exp_labels = row['experts labels']
+            indexes.append((index, exp_labels, true_label))
 
-        with open('gate_indexes_person_{}.npy'.format(person),'wb') as fp:
+        with open('gate_indexes_expert_labels_{}_person_{}.npy'.format(expert_labeling,person),'wb') as fp:
             np.save(fp, np.array(indexes))
-
-
+    # tot = pd.concat(all_dfs)
+    # tot.to_csv('/media/sf_shared/src/medicalImaging/prod/runs/12_09_2017_16_49 - same as above. fixed gate wights/all_train.csv')
 if purpose == 'plot stats':
 
     def heatmap_probs(series1, series2, title):

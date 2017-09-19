@@ -65,6 +65,7 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use
     logger.info("{}".format(confusion_matrix(labels.flatten().tolist(),segmentation.flatten().tolist())))
     logger.info("\n"+classification_report(labels.flatten().tolist(),segmentation.flatten().tolist()))
     logger.info("f1 score is {}".format(f1_score(labels.flatten().tolist(),segmentation.flatten().tolist())))
+    logger.info("confusion matrix  is {}".format(confusion_matrix(labels.flatten().tolist(),segmentation.flatten().tolist())))
 
     #plot predictiorn patches
     # if is_unimodel:
@@ -75,7 +76,7 @@ test = test_data[test_person]
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
 unimodel = [False,True]
-weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run7-combine pretrained gate with pretrained experts/'
+weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run8 -pretrain gate again/'
 for person, time in  test:
     logger.info("checking combined model on person {} time {}".format(person,time))
     test_model(weight_path, person, time, False, mri_contrasts,views, use_stats=False)

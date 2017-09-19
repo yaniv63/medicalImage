@@ -9,14 +9,13 @@ from logging_tools import get_logger
 run_dir = get_run_dir()
 logger = get_logger(run_dir)
 
-init_path = './runs/test4/'
+init_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run10 - summerize all models types/avg model/probs/'
 prob_plot = []
 person = 1
 
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
-test_data =[(4,1),(4,2),(4,3),(4,4)]#[(4,1),(4,2),(4,3),(4,4)]#[(3,2),(3,3),(3,4),(3,5)]#[(4,1),(4,2),(4,3),(4,4)]#[(3,2),(3,3),(3,4),(3,5)]#[(1,2),(1,3),(1,4)]#[(2,2),(2,3),(2,4)] #[(1,2),(1,3),(1,4)]#,(2,2),(2,3),(2,4),(3,2),(3,3),(3,4),(3,5),(4,1),(4,2),(4,3),(4,4),(5,2),(5,3),(5,4)]
-unimodel = [False,True]
+test_data =[(person,x) for x in range (1,5)]
 
 
 def load_lables(person,time,doc_num):
@@ -25,11 +24,12 @@ def load_lables(person,time,doc_num):
     labels = labels.T
     labels = np.rot90(labels, 2, axes=(1, 2))
     return labels
+
 for person, time in  test_data:
     prob_plots = []
     logger.info("check avarage person {}  time {}".format(person,time))
-    for contrast,view in product(mri_contrasts,views):
-        prob_plots.append(np.load(init_path+'prob_plot_{}_{}_{}_{}.npy'.format(person,time,contrast,view)))
+    for view in views:
+        prob_plots.append(np.load(init_path+'prob_plot_{}_{}_{}.npy'.format(person,time,view)))
     av = np.array(prob_plots).mean(axis=0)
     pred = (av > 0.5)*1
     labels = load_lables(person,time,1)

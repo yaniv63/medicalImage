@@ -41,7 +41,7 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
-    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=1, callbacks=callbacks,
+    history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
                                   validation_data=val_set,nb_val_samples=val_size)
     gen.close()
     train_generator.close()
@@ -94,8 +94,7 @@ for train_index, test_index in kf.split(data):
     moe.get_layer('Seq_2').load_weights(w_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
     moe.load_weights(w_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
 
-    moe.load_weights(w_path + 'gate_parameters_test1.h5',by_name=True)
-    #moe.load_weights(w_path + 'w_test1.h5')
+    moe.load_weights(w_path + 'gate_batching_hard.h5',by_name=True)
 
     optimizer = SGD(lr=0.01, nesterov=True)
     moe.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
