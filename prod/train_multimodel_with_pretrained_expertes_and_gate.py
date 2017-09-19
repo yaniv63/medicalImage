@@ -96,6 +96,13 @@ for train_index, test_index in kf.split(data):
 
     moe.load_weights(w_path + 'gate_batching_hard.h5',by_name=True)
 
+    layer_dict = dict([(layer.name, layer) for layer in moe.layers])
+    for i in range(3):
+        expert_layers_dict = dict([(layer.name, layer) for layer in layer_dict['Seq_{}'.format(i)].layers])
+        for layer in expert_layers_dict.values():
+            if 'dense' not in layer.name:
+                layer.trainable = False
+
     optimizer = SGD(lr=0.01, nesterov=True)
     moe.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train_combined(moe, train_d, val_d, MR_modalities, view_list,
