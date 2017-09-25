@@ -120,6 +120,7 @@ for train_index, test_index in kf.split(data):
     # for layer in layer_dict.values():
     #     if 'gate' in layer.name:
     #         layer.trainable = False
+    #stub
     optimizer = SGD(lr=0.001, nesterov=True)
     moe.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train_combined(moe, train_d, val_d, MR_modalities, view_list,
