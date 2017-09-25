@@ -115,12 +115,12 @@ for train_index, test_index in kf.split(data):
     for i in range(3):
         expert_layers_dict = dict([(layer.name, layer) for layer in layer_dict['Seq_{}'.format(i)].layers])
         for layer in expert_layers_dict.values():
-            if 'dense' not in layer.name:
+            if 'dense2' not in layer.name:
                 layer.trainable = False
-    for layer in layer_dict.values():
-        if 'gate' in layer.name:
-            layer.trainable = False
-    optimizer = SGD(lr=0.01, nesterov=True)
+    # for layer in layer_dict.values():
+    #     if 'gate' in layer.name:
+    #         layer.trainable = False
+    optimizer = SGD(lr=0.001, nesterov=True)
     moe.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     history = train_combined(moe, train_d, val_d, MR_modalities, view_list,
                              name=name)

@@ -76,8 +76,8 @@ test = test_data[test_person]
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
 unimodel = False
-uniview = []
-weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run2-perception as input to gate/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
+uniview = ['sagittal']
+weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/'#freeze gate and convolusion/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
 
 logger.info("checking multimodel no pretrain")
 for person, time in  test:
