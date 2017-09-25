@@ -217,6 +217,48 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
     model = Model(input=data, output=weighted_prediction)
     return model
 
+def conc_mul(MM):
+
+    Expert_1, Expert_2, Expert_3, gating = MM
+    SS = Expert_1 *gating[:, 0] + Expert_2 * gating[:, 1] + Expert_3 *gating[:, 2]
+    return SS
+
+def n_experts_combined_model_gate_parameters_test(N_mod=4, img_rows=33, img_cols=33, n=3):
+    predictors = []
+    decisions = []
+    denses = []
+    denses2 = []
+    perceptions = []
+    data = []
+
+    for i in range(n):
+        predictors.append(create_smodel(N_mod, img_rows, img_cols, index=i))
+        data.append(Input(shape=(N_mod, img_rows, img_cols), name='input{}'.format(i)))
+        denses.append(predictors[i](data[i]))
+        denses2.append(Dense(16, name='dense2_{}'.format(i), W_regularizer="l2")(denses[i]))
+        perceptions.append(LeakyReLU(name='perception_{}'.format(i))(denses2[i]))
+        decisions.append(Dense(1, activation='sigmoid', name='out{}'.format(i), W_regularizer="l2")(perceptions[i]))
+
+    merged_decisions = merge(inputs=decisions, concat_axis=1, mode='concat')
+
+    # gate = gating_model_use_parameters(N_exp=n)
+    # gate
+    gate_input = merge(inputs=perceptions, concat_axis=1, mode='concat')
+    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2", input_shape=(48,))(gate_input)
+    relu1 = LeakyReLU()(dense1)
+    dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(relu1)
+    relu2 = LeakyReLU()(dense2)
+    coefficients = Dense(n, activation='softmax', name='out_gate', W_regularizer="l2")(relu2)
+
+    # coefficients = gate(gate_input)
+    weighted_prediction = merge([ decisions[0],decisions[1],decisions[2],coefficients], mode=conc_mul, output_shape=(1,))
+
+    model = Model(input=data, output=weighted_prediction)
+    return model
+
+
+
+
 
 
 # a = n_experts_combined_model(n=3,N_mod=4)

@@ -150,6 +150,7 @@ def create_patches_list(person_list,time_list):
             #%%
             candidate_mask = apply_masks(FLAIR_filename,WM_filename)
 
+
             # In[12]:
             voxel_list = itertools.product(z,y,x)
             for i,j,k in voxel_list:
@@ -184,7 +185,11 @@ def create_ROI_list_person_time(person,time):
     y = np.linspace(0, vol.shape[1]-1,vol.shape[1],dtype='int')
     z = np.linspace(0, vol.shape[0]-1,vol.shape[0],dtype='int')
     candidate_mask = apply_masks(FLAIR_filename,WM_filename)
-
+    candidate_mask = candidate_mask.astype('uint8')
+    import os
+    new_image = nb.Nifti1Image(vol, affine=np.eye(4))
+    nb.save(new_image, os.path.join('/home/yaniv/PycharmProjects/medicalImage', 'testperson1_2_candidates1.nii.gz'))
+    print "finish"
     voxel_list = itertools.product(z,y,x)
     for i,j,k in voxel_list:
         if candidate_mask[i][j][k] and labels[i][j][k] == 1:
@@ -204,6 +209,7 @@ def create_ROI_list_person_time(person,time):
 
 
 if __name__ == "__main__":
-   for person in range(1,6) :
-       for time in range(1,5):
-           create_ROI_list_person_time(person,time)
+   # for person in range(1,6) :
+   #     for time in range(1,5):
+   #         create_ROI_list_person_time(person,time)
+   create_ROI_list_person_time(1,2)

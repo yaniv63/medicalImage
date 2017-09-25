@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     data,positive_list, negative_list = load_all_data(PersonTrainList,contrasts)
     w=16
-    batch_size = 256
+    batch_size = 16
     gen = TrainGenerator(data,positive_list,negative_list,contrasts,views,batch_size,w)
     gen2 = gen.get_generator()
     old_gen = combined_generator(positive_list,negative_list,data,contrasts,views,batch_size=128)

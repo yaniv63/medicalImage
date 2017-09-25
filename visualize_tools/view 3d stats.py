@@ -45,7 +45,7 @@ person = 1
 time = 2
 w = 16
 
-stats_path ='/media/sf_shared/src/medicalImaging/prod/runs/14_09_2017_13_14 - hard_batching/' #'/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
+stats_path ='/media/sf_shared/src/medicalImaging/prod/runs/19_09_2017_16_17 - hard batching combined with stats/'#'/media/sf_shared/src/medicalImaging/prod/runs/18_09_2017_12_47 - combined train after hard + batching/' #'/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
 stats_path += 'stats_{}_{}.npy'.format(person,time)
 stats = np.load(stats_path)
 labels = load_lables(person,time,doc_num= 1)

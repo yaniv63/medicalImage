@@ -3,7 +3,7 @@ from itertools import chain
 from keras.utils.np_utils import to_categorical
 from multiprocessing import JoinableQueue, Event, Process
 from Queue import Empty
-from augmentations import AugmentationWorker
+from augmentations_gate import AugmentationWorker
 from paths import *
 import logging
 
@@ -24,6 +24,7 @@ def batch_generator(batch_queue,event,concat=True):
     batch_queue.close()
     logger.info("finish batch generator")
 
+
 def random_batch_indexes(class_indexes_set,classes_indexes_queues,event):
     logger.debug("start random_batch_indexes")
     index_lists =[ [] for _ in range(len(class_indexes_set))]
@@ -38,6 +39,35 @@ def random_batch_indexes(class_indexes_set,classes_indexes_queues,event):
         q.close()
     logger.info("finish random_batch_indexes")
 
+def random_vectors(class_indexes_set,batch_size):
+    logger.debug("random vectors gen")
+    index_lists =[ [] for _ in range(len(class_indexes_set))]
+    smallest_set =min([len(set) for set in class_indexes_set])
+    class_num = len(class_indexes_set)
+    batch_part = batch_size / class_num
+    batch_num = smallest_set / batch_part
+
+    while True:
+        for i,class_index in enumerate(class_indexes_set):
+            index_lists[i] =  np.random.permutation(class_index).tolist()
+            index_lists[i] = index_lists[i][:batch_num * batch_part]
+        for batch_index in range(batch_num):
+            batch = []
+            for i in range(class_num):
+                batch.extend([x for x in index_lists[i][batch_index * batch_part:(batch_index + 1) * batch_part]])
+            batch = np.random.permutation(batch).tolist()
+            vectors = np.array([x for x,y in batch])
+            vectors = vectors.reshape((vectors.shape[0],-1))
+
+            class_labels = np.array([y for x,y in batch])
+            class_labels= np.squeeze(class_labels)
+            yield (vectors,class_labels)
+
+
+
+
+
+
 def batch_all_indexes(class_indexes_set,classes_indexes_queues):
     logger.debug("start batch_all_indexes")
     index_lists =[ [] for _ in range(len(class_indexes_set))]
@@ -49,11 +79,6 @@ def batch_all_indexes(class_indexes_set,classes_indexes_queues):
             if i< set_len[j] :
                 index = index_lists[j][i]
                 q.put(index)
-                #logger.info("put in queue {}".format(j))
-    # for i,index_list in enumerate(class_indexes_set):
-    #     for index in index_list:
-    #         classes_indexes_queues[i].put(index)
-
     for q in classes_indexes_queues:
         q.close()
     logger.info("finish batch_all_indexes")
@@ -61,20 +86,22 @@ def batch_all_indexes(class_indexes_set,classes_indexes_queues):
 def collect_all_patches(patches_queues,output_queue,size):
     patches_list = []
     labels_list = []
+    experts_list = []
     while len(patches_list) <size :
         try:
              for i,q in enumerate(patches_queues):
                 if q.qsize() > 0:
-                    patches = q.get(True,5)
+                    index,patches,expert = q.get(True,5)
                     #logger.info("took from queue {} ".format(i))
                     patches = np.concatenate(patches,axis=0)
                     patches_list.append(patches)
                     labels_list.append(i)
+                    experts_list.append(expert)
         except Empty as e:
             logger.info("was empty")
     #labels_list = to_categorical(labels_list)
     #patches_list = np.array(patches_list)
-    output_queue.put((patches_list,labels_list))
+    output_queue.put((patches_list,experts_list,labels_list))
     output_queue.close()
     logger.info("finish collect_all_patches")
 
@@ -94,13 +121,11 @@ def collect_batch(classes_queues,batch_queue,batch_size,event,predictor_num):
                 break
             for j,class_q in enumerate(classes_queues):
                 if sets_size[j] < size:
-                    patches = class_q.get()
-                    batch_lists[j].append((patches,j))
+                    index, patches, expert = class_q.get()
+                    batch_lists[j].append((patches,expert))
         for i in range(mod_size): #complete batch size
-            #logger.debug("before complete batch collect_batch")
-            patches = classes_queues[i].get()
-            #logger.debug("after complete batch collect_batch")
-            batch_lists[i].append((patches, i))
+            index, patches, expert = classes_queues[i].get()
+            batch_lists[i].append((patches, expert))
         total_patches = list(chain.from_iterable(batch_lists))
         mix_batch = np.random.permutation(total_patches)
         samples = [patches for patches, _ in mix_batch]
@@ -235,12 +260,12 @@ class TrainGeneratorMultiClassAggregator(object):
                              'rescale_highbound': 1.2, 'rotate': True, 'rot_angle': 5}
         self.__initialize_proccesses()
 
-    def get_generator(self):
-        batch_p = batch_generator(self.queues[0], self.event,self.concat_batch)
+    def get_set(self):
         for i in self.proccesses:
             i.daemon = True
             i.start()
-        return batch_p
+        patches,experts,labels = self.queues[0].get()
+        return patches,experts,labels
 
     def close(self):
         self.event.set()

@@ -102,7 +102,7 @@ for train_index, test_index in kf.split(data):
     predictor.get_layer('Seq_0').load_weights(w_path+'model_test_1_axial_fold_0.h5',by_name=True)
     predictor.get_layer('Seq_1').load_weights(w_path+'model_test_1_coronal_fold_0.h5',by_name=True)
     predictor.get_layer('Seq_2').load_weights(w_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
-    predictor.get_layer('Seq_gate').load_weights(w_path+'model_test_1_sagittal_fold_0.h5')
+    #predictor.get_layer('Seq_gate').load_weights(w_path+'model_test_1_sagittal_fold_0.h5')
     #predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
     optimizer = SGD(lr=0.01, nesterov=True)
     predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])

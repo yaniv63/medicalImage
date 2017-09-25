@@ -36,14 +36,14 @@ def load_all_images(person_list, contrast_list):
         image_list[person][time][contrast] = load_image(person, time, contrast)
     return image_list
 
-def load_image(person, time, contrast):
+def load_image(person, time, contrast,data_path=Src_Path+Data_Path):
     return np.load(
-            Src_Path + Data_Path + "Person0{}_Time0{}_{}.npy".format(person, time, contrast))
+            data_path + "Person0{}_Time0{}_{}.npy".format(person, time, contrast))
 
-def load_contrasts(person, time,contrast_list):
+def load_contrasts(person, time,contrast_list,data_path=Src_Path+Data_Path):
     contrasts = {}
     for contrast in contrast_list:
-        contrasts[contrast] = load_image(person,time,contrast)
+        contrasts[contrast] = load_image(person,time,contrast,data_path)
     return contrasts
 
 def load_lables(person,time,doc_num):
@@ -83,6 +83,6 @@ def create_ROI_list(input_list):
 
 def separate_classes_indexes(indexes,class_num):
     classes_indexes = [[] for _ in range(class_num)]
-    for index,label in indexes:
-        classes_indexes[label].append(index)
+    for index,exp_class,label in indexes:
+        classes_indexes[label].append((index,exp_class))
     return classes_indexes

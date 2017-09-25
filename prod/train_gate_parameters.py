@@ -46,10 +46,12 @@ print model.input_shape
 optimizer = SGD(lr=0.01, nesterov=True)
 model.compile(optimizer=optimizer, loss='categorical_crossentropy',
                   metrics=['accuracy', 'fmeasure', 'precision', 'recall'])
-#model.load_weights('/media/sf_shared/src/medicalImaging/runs/MOE runs/run9-pretrain gate parameters/temp/gate_parameters_test1.h5')
+e = model.get_weights()
+model.load_weights('/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/model_test_1_fold_0.h5',by_name=True)
+e1 = model.get_weights()
 print "train model"
 
-history = model.fit(features,labels,nb_epoch=80,validation_data=(features_v,labels_v),callbacks=callbacks)
+#history = model.fit(features,labels,nb_epoch=80,validation_data=(features_v,labels_v),callbacks=callbacks)
 
 predict = model.predict(features)
 prediction = np.argmax(predict,axis=1)
@@ -77,4 +79,4 @@ print "classification \n \n {}".format(classification_report(true_labels,predict
 print "accuracy \n \n {}".format(accuracy_score(true_labels,prediction))
 print "confusion matrix  \n \n {}".format(confusion_matrix(true_labels,prediction))
 
-model.save_weights('/media/sf_shared/src/medicalImaging/results/gate_parameters_test1_hard_batching.h5 ')
+#model.save_weights('/media/sf_shared/src/medicalImaging/results/gate_parameters_test1.h5 ')
