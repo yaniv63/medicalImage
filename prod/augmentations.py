@@ -117,55 +117,7 @@ class AugmentationWorker(object):
     def finish(self):
         self.__pool.terminate()
 
-    # def worker_augmentation(self):
-    #     last_cur =0
-    #     while True:#not self.__event.is_set():
-    #         #start = tm.time()
-    #         person, time, i, j, k = self.__input_queue.get()
-    #         #cur = tm.time();print cur-last_cur;last_cur=cur
-    #         #end = tm.time();print "queue get {}".format(end-start)
-    #         patch_dict = defaultdict(list)
-    #         samples = []
-    #         for contrast in self.__contrasts:
-    #             # start = tm.time()
-    #             volume = self.__data[person][time][contrast]
-    #             # end = tm.time();print "get data {}".format(end-start)
-    #             for view in self.__views:
-    #                 # start = tm.time()
-    #                 image,roi_mask = get_image(volume,view,i,j,k)
-    #                 # end = tm.time();print "get image {}".format(end-start)
-    #                 if self.__rescale:
-    #                     # start = tm.time()
-    #                     image,roi_mask = rescale(image,roi_mask,self.__lowbound,self.__highbound,self.__binary_element)
-    #                     # end = tm.time();print "rescall {}".format(end-start)
-    #                 if self.__rotate:
-    #                     # start = tm.time()
-    #                     image, roi_mask = rotate(image,roi_mask,self.__angle)
-    #                     # end = tm.time();print "rotate {}".format(end-start)
-    #                 try:
-    #                     # start = tm.time()
-    #                     r1,r2 = np.transpose(np.nonzero(roi_mask))[0] #find roi in image after transformations
-    #                     # end = tm.time(); print"transpose {}".format(end-start)
-    #                 except Exception as e:
-    #                     logger.error("error")
-    #                 # start = tm.time()
-    #                 patch = crop_patch(image,r1,r2,self.__w)
-    #                 # end = tm.time();print "crop {}".format(end-start)
-    #                 if self.__flip:
-    #                     # start = tm.time()
-    #                     patch = flip_patch(patch,self.__flip_chance)
-    #                     # end = tm.time();print "flip {}".format(end-start)
-    #                 patch_dict[contrast + '_' + view].append(patch)
-    #                 #plt_image_patch(image, patch, r1, r2)
-    #         #start = tm.time()
-    #         for x, y in product(self.__contrasts, self.__views):
-    #             sample = patch_dict[x + '_' + y]
-    #             samples.append(sample)
-    #         self.__input_queue.task_done()
-    #         self.__output_queue.put(samples)
-    #         #end = tm.time();print "queue out {}".format(end-start)
-    #     self.__output_queue.close()
-
+   
     def worker_augmentation(self):
         while not self.__event.is_set():
             person, time, i, j, k = self.__input_queue.get()
