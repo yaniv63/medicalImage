@@ -160,7 +160,7 @@ def aggregate_genrated_samples(pos_list,neg_list,data,view):
 def combined_aggregate_genrated_samples(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args,num_labels=4):
     samples = []
     labels = []
-    generator = TrainGenerator(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args)
+    generator = TrainGenerator(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args,num_labels=1)
     _,batch_num = calc_batch_params(positive_list,batch_size)
     gen = generator.get_generator()
     for index,(batch_samples,batch_labels) in enumerate(gen):
