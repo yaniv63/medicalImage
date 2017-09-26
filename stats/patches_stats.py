@@ -1,10 +1,6 @@
 import numpy as np
 np.random.seed(42)
-from os import path, makedirs
-from datetime import datetime
 import pickle
-
-from logging_tools import get_logger
 
 patches = r'./patches/'
 

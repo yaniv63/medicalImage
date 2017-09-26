@@ -1,19 +1,19 @@
-import numpy as np
-import pylab
-import scipy.ndimage.morphology as mrph
-import scipy.ndimage as ndimage
-import scipy.io
 import itertools
+from datetime import datetime
+from os import path, makedirs
+
 import nibabel as nb
-import scipy.misc
+import numpy as np
+import scipy.ndimage.morphology as mrph
 from scipy.interpolate import RegularGridInterpolator
-from logging_tools import  get_logger
+
+from prod.logging_tools import  get_logger
 
 FLAIR_th = 0.91
 WM_prior_th = 0.5
 valSize = 0.2
 
-Src_Path = r"./train/"
+Src_Path = r"../train/"
 Data_Path = r"data/"
 WM_Path = r"WM/"
 Labels_Path = r"seg/"
@@ -51,13 +51,19 @@ def apply_masks(FLAIR_vol_filename, WM_filename):
 
     # final mask: logical AND
     candidate_mask = np.logical_and(FLAIR_mask, WM_mask)
-    return candidate_mask
+    return FLAIR_mask
+
+# create run folder
+time = datetime.now().strftime('%d_%m_%Y_%H_%M')
+run_dir = '../runs/' + time + '/'
+if not path.exists(run_dir):
+    makedirs(run_dir)
+# create logger
+logger = get_logger(run_dir)
 
 
-logger = get_logger()
-
-for index in range(1, 2):
-    for index2 in range(1, 5):
+for index in range(3, 4):
+    for index2 in range(5, 6):
         labeled0_and_not_candidate = 0
         labeled1_and_not_candidate = 0
         labeled0_and_candidate = 0

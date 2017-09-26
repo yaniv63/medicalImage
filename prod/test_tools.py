@@ -172,11 +172,11 @@ def load_model(weight_dir,args):
     for i in range(3):
         expert_layers_dict = dict([(layer.name, layer) for layer in layer_dict['Seq_{}'.format(i)].layers])
         for layer in expert_layers_dict.values():
-            if 'dense' not in layer.name:
+            if 'dense2' not in layer.name:
                 layer.trainable = False
-    for layer in layer_dict.values():
-        if 'gate' in layer.name:
-            layer.trainable = False
+    # for layer in layer_dict.values():
+    #     if 'gate' in layer.name:
+    #         layer.trainable = False
     optimizer = SGD(lr=0.01, nesterov=True)
     combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
     #combined_model.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
