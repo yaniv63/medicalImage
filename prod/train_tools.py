@@ -157,7 +157,7 @@ def aggregate_genrated_samples(pos_list,neg_list,data,view):
 #         labels.extend(batch_labels)
 #     return samples,labels
 
-def combined_aggregate_genrated_samples(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args):
+def combined_aggregate_genrated_samples(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args,num_labels=4):
     samples = []
     labels = []
     generator = TrainGenerator(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args)
@@ -171,9 +171,10 @@ def combined_aggregate_genrated_samples(data, positive_list, negative_list, cont
         labels.extend(batch_labels)
         if index>=batch_num-1:
             break
+    multi_labels = [np.array(labels)] * num_labels
     gen.close()
     generator.close()
-    return samples,labels
+    return samples,multi_labels
 
 
 

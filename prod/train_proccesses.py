@@ -7,7 +7,7 @@ import logging
 run_dir = get_run_dir()
 logger =logging.getLogger('root')
 
-def batch_generator(batch_queue,event):
+def batch_generator(batch_queue,event,num_labels=1):
     logger.debug("start batch generator")
     while not event.is_set():
         batch, labels = batch_queue.get()
@@ -15,7 +15,7 @@ def batch_generator(batch_queue,event):
             batch_queue.task_done()
             break
             batch_queue.task_done()
-        yield (batch,labels)
+        yield (batch,[np.array(labels)]*num_labels)
     batch_queue.close()
     logger.info("finish batch generator")
 
@@ -74,7 +74,7 @@ class TrainGenerator(object):
                           args=(self.positive_list, self.negative_list, pos_index_q, neg_index_q, self.event),
                           name='random_batch_indexes')
         collector_p = Process(target=collect_batch, args=(
-        pos_patch_q, neg_patch_q, batch_q, self.batch_size, self.event,  len(self.contrasts)),
+        pos_patch_q, neg_patch_q, batch_q, self.batch_size, self.event,  len(self.views)),
                               name='collect_batch')
         self.proccesses.append(patch_p)
         self.proccesses.append(collector_p)
@@ -90,7 +90,7 @@ class TrainGenerator(object):
             self.proccesses.append(pos_p)
             self.proccesses.append(neg_p)
 
-    def __init__(self, data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args=None):
+    def __init__(self, data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args=None,num_labels=1):
         self.data = data
         self.positive_list = positive_list
         self.negative_list = negative_list
@@ -102,6 +102,7 @@ class TrainGenerator(object):
         self.batch_size = batch_size
         self.w = w
         self.event = Event()
+        self.num_labels = num_labels
 
         if aug_args is None:
             self.aug_args = {'flip': True, 'flip_p': 0.5, 'rescale': True, 'rescale_lowbound': 0.8,
@@ -109,7 +110,7 @@ class TrainGenerator(object):
         self.__initialize_proccesses()
 
     def get_generator(self):
-        batch_p = batch_generator(self.queues[0], self.event)
+        batch_p = batch_generator(self.queues[0], self.event,self.num_labels)
         for i in self.proccesses:
             i.daemon = True
             i.start()

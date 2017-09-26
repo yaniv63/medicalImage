@@ -146,10 +146,10 @@ class AugmentationWorker(object):
                     patch = crop_patch(image,r1,r2,self.__w)
                     if self.__flip:
                         patch = flip_patch(patch,self.__flip_chance,randlr,randud)
-                    patch_dict[contrast].append(patch)
+                    patch_dict[view].append(patch)
                     #image_dict.append(image)
                     #plt_image_patch(image, patch, r1, r2)
-            for x in  self.__contrasts:
+            for x in  self.__views:
                 sample = patch_dict[x]
                 samples.append(sample)
             self.__input_queue.task_done()

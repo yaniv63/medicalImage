@@ -19,7 +19,7 @@ from sklearn.model_selection import KFold
 import sys
 
 
-from prod.multi_predictors_combined import one_predictor_model,n_experts_combined_model_gate_parameters_contrast_experts
+from prod.multi_predictors_combined import one_predictor_model,n_experts_combined_model_gate_parameters
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
     , calc_epoch_size,combined_aggregate_genrated_samples
 from data_containers import load_data,load_all_data
@@ -51,14 +51,15 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
-    train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16)
+    train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16,num_labels=4)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
-    val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None)
+    val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=4)
     logger.info("training combined model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
+    e = gen.next()
     history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
                                   validation_data=val_set,nb_val_samples=val_size)
     gen.close()
@@ -74,6 +75,16 @@ def my_handler(type, value, tb):
 sys.excepthook = my_handler
 
 # ######## train model
+
+station = 'desktop'
+if station == 'desktop':
+    experts_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
+    w_path_gate = '/media/sf_shared/src/medicalImaging/results/'
+else:
+    experts_path = weight_path + '/moe/'
+    w_path_gate = weight_path + '/moe/'
+
+
 logger.debug("start script")
 MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial','coronal', 'sagittal']
@@ -96,10 +107,27 @@ for train_index, test_index in kf.split(data):
     name="test_{}".format(test_person)
     logger.info("training model {}".format(name))
     runs = []
-    predictor = n_experts_combined_model_gate_parameters_contrast_experts()
-    #predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
+    predictor = n_experts_combined_model_gate_parameters()
     optimizer = SGD(lr=0.01, nesterov=True)
-    predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    predictor.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
+    predictor.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
+
+    predictor.get_layer('Seq_1').load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
+    predictor.load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
+
+    predictor.get_layer('Seq_2').load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
+    predictor.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
+
+    predictor.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
+
+    predictor.compile(optimizer=optimizer,
+                  loss={'main_output': 'binary_crossentropy',
+                        'out0': 'binary_crossentropy',
+                        'out1': 'binary_crossentropy',
+                        'out2': 'binary_crossentropy',
+                        },
+                  loss_weights=[1., 0.2, 0.2, 0.2],
+                  metrics=['accuracy', 'fmeasure'])
     history = train_combined(predictor, train_d, val_d, MR_modalities,view_list,
                              name=name)
     runs.append(history.history)
@@ -108,3 +136,9 @@ for train_index, test_index in kf.split(data):
             pickle.dump(runs, fp)
     plot_training(runs,name = name)
 
+
+#
+# # and trained it via:
+# model.fit({'main_input': headline_data, 'aux_input': additional_data},
+#           {'main_output': labels, 'aux_output': labels},
+#           nb_epoch=50, batch_size=32)
