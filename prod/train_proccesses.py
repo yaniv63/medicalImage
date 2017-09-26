@@ -74,11 +74,11 @@ class TrainGenerator(object):
                           args=(self.positive_list, self.negative_list, pos_index_q, neg_index_q, self.event),
                           name='random_batch_indexes')
         collector_p = Process(target=collect_batch, args=(
-        pos_patch_q, neg_patch_q, batch_q, self.batch_size, self.event,  len(self.views)),
+        pos_patch_q, neg_patch_q, batch_q, self.batch_size, self.event,  len(self.contrasts)),
                               name='collect_batch')
         self.proccesses.append(patch_p)
         self.proccesses.append(collector_p)
-        for i in range(1):
+        for i in range(2):
             pos_worker = AugmentationWorker(pos_index_q, pos_patch_q, self.data, self.contrasts, self.views, self.w, self.event,
                                              self.aug_args)
             neg_worker = AugmentationWorker(neg_index_q, neg_patch_q, self.data, self.contrasts, self.views, self.w, self.event,

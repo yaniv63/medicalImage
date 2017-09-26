@@ -146,10 +146,10 @@ class AugmentationWorker(object):
                     patch = crop_patch(image,r1,r2,self.__w)
                     if self.__flip:
                         patch = flip_patch(patch,self.__flip_chance,randlr,randud)
-                    patch_dict[view].append(patch)
-                    image_dict.append(image)
+                    patch_dict[contrast].append(patch)
+                    #image_dict.append(image)
                     #plt_image_patch(image, patch, r1, r2)
-            for x in  self.__views:
+            for x in  self.__contrasts:
                 sample = patch_dict[x]
                 samples.append(sample)
             self.__input_queue.task_done()
@@ -214,11 +214,11 @@ if __name__ == "__main__":
     pos_p.daemon = True
     pos_p.start()
     patches = output_q.get()
-    for i,angle in enumerate(patches):
-        for j,contrast in enumerate(angle):
+    for i,contrast in enumerate(patches):
+        for j,angle in enumerate(contrast):
             plt.figure()
-            plt.imshow(contrast,cmap=matplotlib.cm.gray)
-            plt.title("angle is {} contrast {}".format(views[i],contrasts[j]))
+            plt.imshow(angle,cmap=matplotlib.cm.gray)
+            plt.title("angle is {} contrast {}".format(views[j],contrasts[i]))
     plt.show()
     raw_input("wait to see")
     worker.finish()

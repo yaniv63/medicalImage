@@ -19,7 +19,7 @@ from sklearn.model_selection import KFold
 import sys
 
 
-from prod.multi_predictors_combined import one_predictor_model,n_predictors_combined_model,n_parameters_combined_model,n_experts_combined_model,n_experts_combined_model_gate_parameters
+from prod.multi_predictors_combined import one_predictor_model,n_experts_combined_model_gate_parameters_contrast_experts
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
     , calc_epoch_size,combined_aggregate_genrated_samples
 from data_containers import load_data,load_all_data
@@ -46,7 +46,7 @@ def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,n
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
     return history
 
-def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):
+def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=16):#256
 
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
@@ -96,13 +96,7 @@ for train_index, test_index in kf.split(data):
     name="test_{}".format(test_person)
     logger.info("training model {}".format(name))
     runs = []
-    #predictor = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)
-    predictor = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
-    w_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
-    predictor.get_layer('Seq_0').load_weights(w_path+'model_test_1_axial_fold_0.h5',by_name=True)
-    predictor.get_layer('Seq_1').load_weights(w_path+'model_test_1_coronal_fold_0.h5',by_name=True)
-    predictor.get_layer('Seq_2').load_weights(w_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
-    #predictor.get_layer('Seq_gate').load_weights(w_path+'model_test_1_sagittal_fold_0.h5')
+    predictor = n_experts_combined_model_gate_parameters_contrast_experts()
     #predictor = one_predictor_model(N_mod = 4, img_rows = 33, img_cols = 33,index=0)
     optimizer = SGD(lr=0.01, nesterov=True)
     predictor.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
