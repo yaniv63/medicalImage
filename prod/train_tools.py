@@ -16,17 +16,16 @@ run_dir =get_run_dir()
 
 
 
-
 def create_callbacks(name,fold):
-    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_loss',
+    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_main_output_loss',
                                    save_best_only=True,
                                    save_weights_only=True)
-    print_logs = LambdaCallback(on_epoch_end=lambda epoch, logs:
+    print_logs = LambdaCallback(on_epoch_end=lambda epoch,logs:
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
-                 format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
-                        logs['val_fmeasure'])))
-    reducelr = ReduceLR(name,fold,0.8,patience=15)
-    early_stop = EarlyStopping(patience=50)
+                format(epoch, logs['main_output_loss'], logs['main_output_acc'], logs['main_output_fmeasure'], logs['val_main_output_loss'], logs['val_main_output_acc'],
+                        logs['val_main_output_fmeasure'])))
+    reducelr = ReduceLR(name,fold,0.8,patience=15,monitor = 'val_main_output_loss')
+    early_stop = EarlyStopping(patience=50,monitor = 'val_main_output_loss')
     mycallbacks = [print_logs,save_weights,reducelr,early_stop]
     return mycallbacks
 
@@ -160,18 +159,21 @@ def aggregate_genrated_samples(pos_list,neg_list,data,view):
 def combined_aggregate_genrated_samples(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args,num_labels=4):
     samples = []
     labels = []
-    generator = TrainGenerator(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args,num_labels=1)
+    generator = TrainGenerator(data, positive_list, negative_list, contrasts, views, batch_size,w, aug_args,num_labels=4)
     _,batch_num = calc_batch_params(positive_list,batch_size)
     gen = generator.get_generator()
     for index,(batch_samples,batch_labels) in enumerate(gen):
         if len(samples) == 0:
             samples = batch_samples
+	    labels  = batch_labels
         else:
             samples = [np.concatenate((samples[i], batch_samples[i])) for i in range(len(batch_samples))]
-        labels.extend(batch_labels)
+            labels  = [np.concatenate((labels[i], batch_labels[i])) for i in range(len(batch_labels))]
+
+    #    labels.extend(batch_labels)
         if index>=batch_num-1:
             break
-    multi_labels = [np.array(labels)] * num_labels
+    multi_labels = labels#[np.array(labels)] * num_labels
     gen.close()
     generator.close()
     return samples,multi_labels
