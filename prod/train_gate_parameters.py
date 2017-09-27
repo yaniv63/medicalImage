@@ -47,7 +47,7 @@ optimizer = SGD(lr=0.01, nesterov=True)
 model.compile(optimizer=optimizer, loss='categorical_crossentropy',
                   metrics=['accuracy', 'fmeasure', 'precision', 'recall'])
 e = model.get_weights()
-model.load_weights('/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/model_test_1_fold_0.h5',by_name=True)
+model.load_weights('/media/sf_shared/src/medicalImaging/runs/MOE runs/run13- multilabel moe/lr_0.0001/model_test_1_fold_0.h5',by_name=True)
 e1 = model.get_weights()
 print "train model"
 

@@ -53,7 +53,6 @@ def load_lables(person,time,doc_num):
     labels = np.rot90(labels, 2, axes=(1, 2))
     return labels
 
-
 def load_patch(person,time):
     with open(patches + "positive_person{}_time{}.lst".format(person,time), 'rb') as fp1, \
             open(patches + "negative_person{}_time{}.lst".format(person,time), 'rb') as fp2:
