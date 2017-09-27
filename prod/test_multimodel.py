@@ -71,13 +71,13 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use
     # if is_unimodel:
     #     watch_predictions(test_images[contrasts[0]],labels,segmentation,views[0],w=16)
 test_data = {1:[(1,1),(1,2),(1,3),(1,4)],2:[(2,1),(2,2),(2,3),(2,4)],3:[(3,1),(3,2),(3,3),(3,4),(3,5)],4:[(4,1),(4,2),(4,3),(4,4)],5:[(5,1),(5,2),(5,3),(5,4)]}
-test_person=1
+test_person=5
 test = test_data[test_person]
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
 unimodel = False
 uniview = ['sagittal']
-weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run12- freeze conv & first dense layer experts, (gate not freezed)/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/'#freeze gate and convolusion/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
+weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run13- multilabel moe/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/'#freeze gate and convolusion/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
 
 logger.info("checking multimodel no pretrain")
 for person, time in  test:
