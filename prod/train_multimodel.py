@@ -7,7 +7,7 @@ Created on Wed Dec 21 19:32:39 2016
 # create logger
 
 from paths import *
-from prod.logging_tools import get_logger
+from logging_tools import get_logger
 
 run_dir = get_run_dir()
 logger = get_logger(run_dir)
@@ -19,7 +19,7 @@ from sklearn.model_selection import KFold
 import sys
 
 
-from prod.multi_predictors_combined import one_predictor_model,n_experts_combined_model_gate_parameters
+from multi_predictors_combined import one_predictor_model,n_experts_combined_model_gate_parameters
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
     , calc_epoch_size,combined_aggregate_genrated_samples
 from data_containers import load_data,load_all_data
@@ -46,7 +46,7 @@ def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,n
     calc_dice(confusion_mat, "individual val {}".format(fold_num))
     return history
 
-def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=16):#256
+def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):#256
 
     callbacks = create_callbacks(name, fold=0)
     logger.debug("creating train & val generators")
@@ -76,7 +76,7 @@ sys.excepthook = my_handler
 
 # ######## train model
 
-station = 'desktop'
+station = 'server'
 if station == 'desktop':
     experts_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
     w_path_gate = '/media/sf_shared/src/medicalImaging/results/'
@@ -108,18 +108,18 @@ for train_index, test_index in kf.split(data):
     logger.info("training model {}".format(name))
     runs = []
     predictor = n_experts_combined_model_gate_parameters()
-    optimizer = SGD(lr=0.01, nesterov=True)
-    predictor.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-    predictor.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-
-    predictor.get_layer('Seq_1').load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-    predictor.load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-
-    predictor.get_layer('Seq_2').load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-    predictor.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-
-    predictor.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
-
+    optimizer = SGD(lr=0.0001, nesterov=True)
+#    predictor.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
+#    predictor.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
+#
+#    predictor.get_layer('Seq_1').load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
+#    predictor.load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
+#
+#    predictor.get_layer('Seq_2').load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
+#    predictor.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
+#
+#    predictor.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
+    predictor.load_weights('/home/ubuntu/src/medicalImage/runs/27_09_2017_00_05/' + 'model_test_1_fold_0.h5')
     predictor.compile(optimizer=optimizer,
                   loss={'main_output': 'binary_crossentropy',
                         'out0': 'binary_crossentropy',
@@ -134,7 +134,7 @@ for train_index, test_index in kf.split(data):
 
     with open(run_dir + 'cross_valid_stats_{}.lst'.format(name), 'wb') as fp:
             pickle.dump(runs, fp)
-    plot_training(runs,name = name)
+    #plot_training(runs,name = name)
 
 
 #
