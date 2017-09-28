@@ -1,0 +1,15 @@
+09-12 11:50 root         DEBUG    - train_multimodel_with_pretrained_expertes_and_gate - MainProcess - start script
+09-12 11:50 root         INFO     - train_multimodel_with_pretrained_expertes_and_gate - MainProcess - TRAIN: [(2, 1), (2, 2), (2, 3), (2, 4), (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (4, 1), (4, 2), (4, 3), (4, 4)] VAL: [(5, 1), (5, 2), (5, 3), (5, 4)] , TEST: 1
+09-12 11:50 root         INFO     - train_multimodel_with_pretrained_expertes_and_gate - MainProcess - training model test_1 . multimodel with pretrained expertes and gate. use parameters gate
+09-12 11:50 root         DEBUG    - train_multimodel_with_pretrained_expertes_and_gate - MainProcess - creating train & val generators
+09-12 11:51 root         DEBUG    - train_proccesses - random_batch_indexes - start random_batch_indexes
+09-12 11:51 root         DEBUG    - train_proccesses - collect_batch - start collect_batch
+09-12 11:51 root         DEBUG    - train_proccesses - MainProcess - start batch generator
+09-12 11:52 root         INFO     - train_proccesses - MainProcess - finished
+09-12 11:52 root         INFO     - train_multimodel_with_pretrained_expertes_and_gate - MainProcess - training combined model
+09-12 11:52 root         DEBUG    - train_proccesses - random_batch_indexes - start random_batch_indexes
+09-12 11:52 root         DEBUG    - train_proccesses - collect_batch - start collect_batch
+09-12 11:52 root         DEBUG    - train_proccesses - MainProcess - start batch generator
+09-12 11:59 root         DEBUG    - train_tools - MainProcess - epoch 0 loss 0.30294 acc 0.95406 fmeasure 0.95459 val_loss 0.36518 val_acc 0.90814 val_fmeasure0.90958 
+09-12 11:59 root         ERROR    - train_multimodel_with_pretrained_expertes_and_gate - MainProcess - Uncaught exception: generator already executing
+None

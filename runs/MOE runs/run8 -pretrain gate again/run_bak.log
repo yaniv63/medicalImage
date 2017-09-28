@@ -1,0 +1,28 @@
+09-05 13:23 root         DEBUG    - train_gate - MainProcess - start script
+09-05 13:23 root         INFO     - train_gate - MainProcess - TRAIN: [(2, 1), (2, 2), (2, 3), (2, 4), (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (4, 1), (4, 2), (4, 3), (4, 4)] VAL: [(5, 1), (5, 2), (5, 3), (5, 4)] , TEST: 1
+09-05 13:23 root         INFO     - train_gate - MainProcess - training model test_1
+09-05 13:23 root         DEBUG    - train_gate - MainProcess - creating train & val generators
+09-05 13:23 root         DEBUG    - train_proccesses_gate - random_batch_indexes - start random_batch_indexes
+09-05 13:23 root         DEBUG    - train_proccesses_gate - collect_batch - start collect_batch
+09-05 13:23 root         DEBUG    - train_proccesses_gate - batch_all_indexes - start batch_all_indexes
+09-05 13:23 root         DEBUG    - train_proccesses_gate - MainProcess - start batch generator
+09-05 13:23 root         INFO     - train_proccesses_gate - collect_all_patches - finish collect_all_patches
+09-05 13:23 root         INFO     - train_tools - MainProcess - took all the samples
+09-05 13:23 root         INFO     - train_proccesses_gate - MainProcess - finished
+09-05 13:23 root         INFO     - train_gate - MainProcess - training combined model
+09-05 13:23 root         DEBUG    - train_proccesses_gate - MainProcess - start batch generator
+09-05 13:28 root         DEBUG    - train_tools - MainProcess - epoch 0 loss 2.09791 acc 0.37006 fmeasure 0.00000 val_loss 2.05284 val_acc 0.35122 val_fmeasure0.00000 
+09-05 13:32 root         DEBUG    - train_tools - MainProcess - epoch 1 loss 2.01015 acc 0.39750 fmeasure 0.00000 val_loss 1.96490 val_acc 0.37143 val_fmeasure0.00000 
+09-05 13:37 root         DEBUG    - train_tools - MainProcess - epoch 2 loss 1.92833 acc 0.40757 fmeasure 0.00025 val_loss 1.88323 val_acc 0.36934 val_fmeasure0.00000 
+09-05 13:42 root         DEBUG    - train_tools - MainProcess - epoch 3 loss 1.85627 acc 0.40855 fmeasure 0.00762 val_loss 1.81332 val_acc 0.36098 val_fmeasure0.01100 
+09-05 13:47 root         DEBUG    - train_tools - MainProcess - epoch 4 loss 1.79179 acc 0.40784 fmeasure 0.01578 val_loss 1.76500 val_acc 0.35261 val_fmeasure0.00000 
+09-05 13:52 root         DEBUG    - train_tools - MainProcess - epoch 5 loss 1.73188 acc 0.41158 fmeasure 0.02564 val_loss 1.70037 val_acc 0.38746 val_fmeasure0.00000 
+09-05 13:57 root         DEBUG    - train_tools - MainProcess - epoch 6 loss 1.67850 acc 0.41102 fmeasure 0.02816 val_loss 1.65733 val_acc 0.36446 val_fmeasure0.00000 
+09-05 14:02 root         DEBUG    - train_tools - MainProcess - epoch 7 loss 1.62947 acc 0.41263 fmeasure 0.03432 val_loss 1.59797 val_acc 0.40139 val_fmeasure0.00000 
+09-05 14:07 root         DEBUG    - train_tools - MainProcess - epoch 8 loss 1.58462 acc 0.41193 fmeasure 0.03472 val_loss 1.55458 val_acc 0.41115 val_fmeasure0.00000 
+09-05 14:12 root         DEBUG    - train_tools - MainProcess - epoch 9 loss 1.54243 acc 0.41524 fmeasure 0.03964 val_loss 1.51329 val_acc 0.40976 val_fmeasure0.00962 
+09-05 14:16 root         DEBUG    - train_tools - MainProcess - epoch 10 loss 1.50486 acc 0.41101 fmeasure 0.04479 val_loss 1.47549 val_acc 0.41533 val_fmeasure0.02429 
+09-05 14:21 root         DEBUG    - train_tools - MainProcess - epoch 11 loss 1.47091 acc 0.41153 fmeasure 0.04565 val_loss 1.45051 val_acc 0.41394 val_fmeasure0.00000 
+09-05 14:26 root         DEBUG    - train_tools - MainProcess - epoch 12 loss 1.43876 acc 0.41054 fmeasure 0.04099 val_loss 1.41409 val_acc 0.42369 val_fmeasure0.00962 
+09-05 14:27 root         ERROR    - train_gate - MainProcess - Uncaught exception: 
+None

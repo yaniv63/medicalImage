@@ -1,0 +1,15 @@
+ 
+              precision    recall  f1-score   support
+
+          0       0.88      0.92      0.90     26784
+          1       0.81      0.73      0.77     12207
+
+avg / total       0.86      0.86      0.86     38991
+
+2017-09-27 16:03:21,376 root         INFO     - test_on_indexes - MainProcess -  accuracy 
+ 
+ 0.862352850658
+2017-09-27 16:03:21,472 root         INFO     - test_on_indexes - MainProcess -  confusion matrix  
+ 
+ [[24670  2114]
+ [ 3253  8954]]

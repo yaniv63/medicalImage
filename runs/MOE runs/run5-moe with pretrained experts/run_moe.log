@@ -1,0 +1,89 @@
+08-26 23:26 root         DEBUG    - train_multimodel - MainProcess - start script
+08-26 23:26 root         INFO     - train_multimodel - MainProcess - TRAIN: [(2, 1), (2, 2), (2, 3), (2, 4), (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (4, 1), (4, 2), (4, 3), (4, 4)] VAL: [(5, 1), (5, 2), (5, 3), (5, 4)] , TEST: 1
+08-26 23:26 root         INFO     - train_multimodel - MainProcess - training model test_1
+08-26 23:26 root         DEBUG    - train_multimodel - MainProcess - creating train & val generators
+08-26 23:26 root         DEBUG    - train_proccesses - random_batch_indexes - start random_batch_indexes
+08-26 23:26 root         DEBUG    - train_proccesses - collect_batch - start collect_batch
+08-26 23:26 root         DEBUG    - train_proccesses - MainProcess - start batch generator
+08-26 23:27 root         INFO     - train_proccesses - MainProcess - finished
+08-26 23:27 root         INFO     - train_multimodel - MainProcess - training combined model
+08-26 23:27 root         DEBUG    - train_proccesses - random_batch_indexes - start random_batch_indexes
+08-26 23:27 root         DEBUG    - train_proccesses - collect_batch - start collect_batch
+08-26 23:28 root         DEBUG    - train_proccesses - MainProcess - start batch generator
+08-26 23:34 root         DEBUG    - train_tools - MainProcess - epoch 0 loss 0.13264 acc 0.95748 fmeasure 0.95809 val_loss 0.24869 val_acc 0.88217 val_fmeasure0.87593 
+08-26 23:41 root         DEBUG    - train_tools - MainProcess - epoch 1 loss 0.12736 acc 0.95789 fmeasure 0.95852 val_loss 0.22937 val_acc 0.89685 val_fmeasure0.89421 
+08-26 23:48 root         DEBUG    - train_tools - MainProcess - epoch 2 loss 0.12598 acc 0.95802 fmeasure 0.95867 val_loss 0.26019 val_acc 0.87527 val_fmeasure0.86560 
+08-26 23:55 root         DEBUG    - train_tools - MainProcess - epoch 3 loss 0.12467 acc 0.95843 fmeasure 0.95905 val_loss 0.26963 val_acc 0.86372 val_fmeasure0.85142 
+08-27 00:02 root         DEBUG    - train_tools - MainProcess - epoch 4 loss 0.12134 acc 0.95967 fmeasure 0.96026 val_loss 0.22296 val_acc 0.90117 val_fmeasure0.89909 
+08-27 00:08 root         DEBUG    - train_tools - MainProcess - epoch 5 loss 0.12160 acc 0.95911 fmeasure 0.95974 val_loss 0.27009 val_acc 0.87123 val_fmeasure0.86051 
+08-27 00:15 root         DEBUG    - train_tools - MainProcess - epoch 6 loss 0.11951 acc 0.95974 fmeasure 0.96033 val_loss 0.23934 val_acc 0.89056 val_fmeasure0.88532 
+08-27 00:22 root         DEBUG    - train_tools - MainProcess - epoch 7 loss 0.11867 acc 0.96004 fmeasure 0.96062 val_loss 0.22880 val_acc 0.89409 val_fmeasure0.89028 
+08-27 00:29 root         DEBUG    - train_tools - MainProcess - epoch 8 loss 0.11911 acc 0.95989 fmeasure 0.96051 val_loss 0.26668 val_acc 0.87200 val_fmeasure0.86076 
+08-27 00:36 root         DEBUG    - train_tools - MainProcess - epoch 9 loss 0.11794 acc 0.96029 fmeasure 0.96093 val_loss 0.23948 val_acc 0.89046 val_fmeasure0.88475 
+08-27 00:43 root         DEBUG    - train_tools - MainProcess - epoch 10 loss 0.11696 acc 0.96059 fmeasure 0.96122 val_loss 0.23386 val_acc 0.89288 val_fmeasure0.88798 
+08-27 00:49 root         DEBUG    - train_tools - MainProcess - epoch 11 loss 0.11574 acc 0.96060 fmeasure 0.96122 val_loss 0.25985 val_acc 0.87423 val_fmeasure0.86561 
+08-27 00:56 root         DEBUG    - train_tools - MainProcess - epoch 12 loss 0.11581 acc 0.96054 fmeasure 0.96118 val_loss 0.23321 val_acc 0.89194 val_fmeasure0.88729 
+08-27 01:03 root         DEBUG    - train_tools - MainProcess - epoch 13 loss 0.11539 acc 0.96082 fmeasure 0.96145 val_loss 0.28260 val_acc 0.87325 val_fmeasure0.86206 
+08-27 01:10 root         DEBUG    - train_tools - MainProcess - epoch 14 loss 0.11483 acc 0.96107 fmeasure 0.96167 val_loss 0.23320 val_acc 0.89069 val_fmeasure0.88593 
+08-27 01:17 root         DEBUG    - train_tools - MainProcess - epoch 15 loss 0.11447 acc 0.96083 fmeasure 0.96147 val_loss 0.19155 val_acc 0.92265 val_fmeasure0.92389 
+08-27 01:24 root         DEBUG    - train_tools - MainProcess - epoch 16 loss 0.11281 acc 0.96148 fmeasure 0.96210 val_loss 0.26213 val_acc 0.87386 val_fmeasure0.86362 
+08-27 01:30 root         DEBUG    - train_tools - MainProcess - epoch 17 loss 0.11245 acc 0.96195 fmeasure 0.96255 val_loss 0.21054 val_acc 0.90817 val_fmeasure0.90678 
+08-27 01:37 root         DEBUG    - train_tools - MainProcess - epoch 18 loss 0.11308 acc 0.96205 fmeasure 0.96265 val_loss 0.29386 val_acc 0.86540 val_fmeasure0.85220 
+08-27 01:44 root         DEBUG    - train_tools - MainProcess - epoch 19 loss 0.11199 acc 0.96203 fmeasure 0.96266 val_loss 0.21927 val_acc 0.90409 val_fmeasure0.90183 
+08-27 01:51 root         DEBUG    - train_tools - MainProcess - epoch 20 loss 0.11186 acc 0.96204 fmeasure 0.96266 val_loss 0.22307 val_acc 0.89797 val_fmeasure0.89457 
+08-27 01:58 root         DEBUG    - train_tools - MainProcess - epoch 21 loss 0.11195 acc 0.96199 fmeasure 0.96262 val_loss 0.30980 val_acc 0.85705 val_fmeasure0.84074 
+08-27 02:04 root         DEBUG    - train_tools - MainProcess - epoch 22 loss 0.11197 acc 0.96188 fmeasure 0.96250 val_loss 0.20379 val_acc 0.91410 val_fmeasure0.91510 
+08-27 02:11 root         DEBUG    - train_tools - MainProcess - epoch 23 loss 0.11143 acc 0.96191 fmeasure 0.96254 val_loss 0.22933 val_acc 0.89312 val_fmeasure0.88837 
+08-27 02:18 root         DEBUG    - train_tools - MainProcess - epoch 24 loss 0.11095 acc 0.96225 fmeasure 0.96285 val_loss 0.21304 val_acc 0.90608 val_fmeasure0.90424 
+08-27 02:25 root         DEBUG    - train_tools - MainProcess - epoch 25 loss 0.11037 acc 0.96243 fmeasure 0.96304 val_loss 0.24699 val_acc 0.88904 val_fmeasure0.88235 
+08-27 02:32 root         DEBUG    - train_tools - MainProcess - epoch 26 loss 0.11042 acc 0.96247 fmeasure 0.96310 val_loss 0.21545 val_acc 0.90207 val_fmeasure0.89955 
+08-27 02:39 root         DEBUG    - train_tools - MainProcess - epoch 27 loss 0.11045 acc 0.96247 fmeasure 0.96313 val_loss 0.22655 val_acc 0.89729 val_fmeasure0.89469 
+08-27 02:46 root         DEBUG    - train_tools - MainProcess - epoch 28 loss 0.10864 acc 0.96293 fmeasure 0.96355 val_loss 0.30273 val_acc 0.86907 val_fmeasure0.85613 
+08-27 02:53 root         DEBUG    - train_tools - MainProcess - epoch 29 loss 0.10852 acc 0.96295 fmeasure 0.96356 val_loss 0.20276 val_acc 0.91133 val_fmeasure0.91120 
+08-27 02:59 root         DEBUG    - train_tools - MainProcess - epoch 30 loss 0.10917 acc 0.96246 fmeasure 0.96310 val_loss 0.22031 val_acc 0.90009 val_fmeasure0.89698 
+08-27 02:59 root         INFO     - train_tools - MainProcess - loading previous weights
+08-27 02:59 root         INFO     - train_tools - MainProcess - 
+Epoch 30: reducing learning rate from  0.00999999977648 to 0.00799999982119
+08-27 03:06 root         DEBUG    - train_tools - MainProcess - epoch 31 loss 0.11362 acc 0.96144 fmeasure 0.96208 val_loss 0.21558 val_acc 0.90504 val_fmeasure0.90326 
+08-27 03:13 root         DEBUG    - train_tools - MainProcess - epoch 32 loss 0.11267 acc 0.96168 fmeasure 0.96232 val_loss 0.22630 val_acc 0.89719 val_fmeasure0.89344 
+08-27 03:20 root         DEBUG    - train_tools - MainProcess - epoch 33 loss 0.11025 acc 0.96256 fmeasure 0.96314 val_loss 0.22377 val_acc 0.90036 val_fmeasure0.89782 
+08-27 03:27 root         DEBUG    - train_tools - MainProcess - epoch 34 loss 0.11132 acc 0.96184 fmeasure 0.96247 val_loss 0.23303 val_acc 0.89504 val_fmeasure0.89024 
+08-27 03:34 root         DEBUG    - train_tools - MainProcess - epoch 35 loss 0.11093 acc 0.96226 fmeasure 0.96287 val_loss 0.22024 val_acc 0.89807 val_fmeasure0.89532 
+08-27 03:41 root         DEBUG    - train_tools - MainProcess - epoch 36 loss 0.11146 acc 0.96179 fmeasure 0.96243 val_loss 0.24839 val_acc 0.88544 val_fmeasure0.87869 
+08-27 03:47 root         DEBUG    - train_tools - MainProcess - epoch 37 loss 0.11095 acc 0.96180 fmeasure 0.96244 val_loss 0.23423 val_acc 0.89379 val_fmeasure0.88896 
+08-27 03:54 root         DEBUG    - train_tools - MainProcess - epoch 38 loss 0.11092 acc 0.96219 fmeasure 0.96282 val_loss 0.20823 val_acc 0.90733 val_fmeasure0.90600 
+08-27 04:01 root         DEBUG    - train_tools - MainProcess - epoch 39 loss 0.10940 acc 0.96229 fmeasure 0.96290 val_loss 0.22257 val_acc 0.89824 val_fmeasure0.89482 
+08-27 04:08 root         DEBUG    - train_tools - MainProcess - epoch 40 loss 0.11048 acc 0.96228 fmeasure 0.96291 val_loss 0.21648 val_acc 0.90201 val_fmeasure0.89945 
+08-27 04:14 root         DEBUG    - train_tools - MainProcess - epoch 41 loss 0.10934 acc 0.96264 fmeasure 0.96326 val_loss 0.25726 val_acc 0.88211 val_fmeasure0.87403 
+08-27 04:21 root         DEBUG    - train_tools - MainProcess - epoch 42 loss 0.10991 acc 0.96249 fmeasure 0.96311 val_loss 0.23034 val_acc 0.89187 val_fmeasure0.88775 
+08-27 04:28 root         DEBUG    - train_tools - MainProcess - epoch 43 loss 0.10892 acc 0.96286 fmeasure 0.96350 val_loss 0.22845 val_acc 0.89766 val_fmeasure0.89333 
+08-27 04:35 root         DEBUG    - train_tools - MainProcess - epoch 44 loss 0.10901 acc 0.96292 fmeasure 0.96354 val_loss 0.23875 val_acc 0.88780 val_fmeasure0.88156 
+08-27 04:42 root         DEBUG    - train_tools - MainProcess - epoch 45 loss 0.10898 acc 0.96254 fmeasure 0.96317 val_loss 0.21058 val_acc 0.90783 val_fmeasure0.90555 
+08-27 04:42 root         INFO     - train_tools - MainProcess - loading previous weights
+08-27 04:42 root         INFO     - train_tools - MainProcess - 
+Epoch 45: reducing learning rate from  0.00799999944866 to 0.00639999955893
+08-27 04:49 root         DEBUG    - train_tools - MainProcess - epoch 46 loss 0.11122 acc 0.96231 fmeasure 0.96292 val_loss 0.25408 val_acc 0.88046 val_fmeasure0.87291 
+08-27 04:55 root         DEBUG    - train_tools - MainProcess - epoch 47 loss 0.11205 acc 0.96193 fmeasure 0.96255 val_loss 0.22590 val_acc 0.89642 val_fmeasure0.89219 
+08-27 05:02 root         DEBUG    - train_tools - MainProcess - epoch 48 loss 0.11158 acc 0.96225 fmeasure 0.96288 val_loss 0.20338 val_acc 0.91255 val_fmeasure0.91211 
+08-27 05:09 root         DEBUG    - train_tools - MainProcess - epoch 49 loss 0.11162 acc 0.96181 fmeasure 0.96245 val_loss 0.24912 val_acc 0.88544 val_fmeasure0.87812 
+08-27 05:16 root         DEBUG    - train_tools - MainProcess - epoch 50 loss 0.11094 acc 0.96227 fmeasure 0.96288 val_loss 0.22069 val_acc 0.90009 val_fmeasure0.89666 
+08-27 05:23 root         DEBUG    - train_tools - MainProcess - epoch 51 loss 0.11112 acc 0.96217 fmeasure 0.96280 val_loss 0.23342 val_acc 0.89278 val_fmeasure0.88748 
+08-27 05:30 root         DEBUG    - train_tools - MainProcess - epoch 52 loss 0.10969 acc 0.96252 fmeasure 0.96315 val_loss 0.21828 val_acc 0.89820 val_fmeasure0.89489 
+08-27 05:37 root         DEBUG    - train_tools - MainProcess - epoch 53 loss 0.10959 acc 0.96271 fmeasure 0.96333 val_loss 0.22006 val_acc 0.90285 val_fmeasure0.90008 
+08-27 05:44 root         DEBUG    - train_tools - MainProcess - epoch 54 loss 0.11045 acc 0.96230 fmeasure 0.96294 val_loss 0.27455 val_acc 0.87345 val_fmeasure0.86225 
+08-27 05:50 root         DEBUG    - train_tools - MainProcess - epoch 55 loss 0.11025 acc 0.96234 fmeasure 0.96297 val_loss 0.21375 val_acc 0.90426 val_fmeasure0.90211 
+08-27 05:57 root         DEBUG    - train_tools - MainProcess - epoch 56 loss 0.10936 acc 0.96263 fmeasure 0.96324 val_loss 0.21312 val_acc 0.90692 val_fmeasure0.90553 
+08-27 06:04 root         DEBUG    - train_tools - MainProcess - epoch 57 loss 0.10901 acc 0.96276 fmeasure 0.96337 val_loss 0.22326 val_acc 0.90063 val_fmeasure0.89765 
+08-27 06:11 root         DEBUG    - train_tools - MainProcess - epoch 58 loss 0.10902 acc 0.96281 fmeasure 0.96343 val_loss 0.23870 val_acc 0.89036 val_fmeasure0.88513 
+08-27 06:18 root         DEBUG    - train_tools - MainProcess - epoch 59 loss 0.10877 acc 0.96271 fmeasure 0.96334 val_loss 0.21172 val_acc 0.90581 val_fmeasure0.90414 
+08-27 06:24 root         DEBUG    - train_tools - MainProcess - epoch 60 loss 0.10842 acc 0.96270 fmeasure 0.96332 val_loss 0.22539 val_acc 0.89827 val_fmeasure0.89459 
+08-27 06:24 root         INFO     - train_tools - MainProcess - loading previous weights
+08-27 06:24 root         INFO     - train_tools - MainProcess - 
+Epoch 60: reducing learning rate from  0.00639999937266 to 0.00511999949813
+08-27 06:31 root         DEBUG    - train_tools - MainProcess - epoch 61 loss 0.11124 acc 0.96186 fmeasure 0.96249 val_loss 0.21841 val_acc 0.90201 val_fmeasure0.89960 
+08-27 06:38 root         DEBUG    - train_tools - MainProcess - epoch 62 loss 0.11203 acc 0.96186 fmeasure 0.96249 val_loss 0.21321 val_acc 0.90362 val_fmeasure0.90172 
+08-27 06:45 root         DEBUG    - train_tools - MainProcess - epoch 63 loss 0.11226 acc 0.96155 fmeasure 0.96218 val_loss 0.24222 val_acc 0.88574 val_fmeasure0.87920 
+08-27 06:52 root         DEBUG    - train_tools - MainProcess - epoch 64 loss 0.11130 acc 0.96225 fmeasure 0.96286 val_loss 0.21997 val_acc 0.90278 val_fmeasure0.90018 
+08-27 06:59 root         DEBUG    - train_tools - MainProcess - epoch 65 loss 0.11038 acc 0.96234 fmeasure 0.96297 val_loss 0.22715 val_acc 0.89736 val_fmeasure0.89277 
+08-27 07:05 root         DEBUG    - train_tools - MainProcess - epoch 66 loss 0.10976 acc 0.96269 fmeasure 0.96330 val_loss 0.21291 val_acc 0.90383 val_fmeasure0.90233 
+08-27 07:06 root         INFO     - train_proccesses - MainProcess - finished

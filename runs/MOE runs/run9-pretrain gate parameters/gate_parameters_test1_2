@@ -1,0 +1,36 @@
+classification 
+ 
+              precision    recall  f1-score   support
+
+          0       0.83      0.86      0.84     14957
+          1       0.84      0.76      0.80     10396
+          2       0.84      0.87      0.85     15658
+
+avg / total       0.84      0.84      0.84     41011
+
+accuracy 
+ 
+ 0.836604813343
+confusion matrix  
+ 
+ [[12811   798  1348]
+ [ 1225  7939  1232]
+ [ 1379   719 13560]]
+classification 
+ 
+              precision    recall  f1-score   support
+
+          0       0.75      0.89      0.81      4570
+          1       0.78      0.67      0.72      2349
+          2       0.89      0.81      0.84      6228
+
+avg / total       0.82      0.81      0.81     13147
+
+accuracy 
+ 
+ 0.811820187115
+confusion matrix  
+ 
+ [[4075  131  364]
+ [ 487 1574  288]
+ [ 902  302 5024]]

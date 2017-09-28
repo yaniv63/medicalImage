@@ -1,0 +1,93 @@
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - checking unimodel coronal
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - person 1 time 1
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - predict images
+09-12 18:06 root         INFO     - test_tools - patcher - start create patch process 
+09-12 18:06 root         INFO     - test_tools - patcher - patches for model
+09-12 18:06 root         INFO     - test_tools - predictor - start predict process
+09-12 18:06 root         INFO     - test_tools - predictor - loading model
+09-12 18:06 root         INFO     - test_tools - segmentor - start segmentation process
+09-12 18:06 root         INFO     - test_tools - predictor - start predict with model
+09-12 18:06 root         INFO     - test_tools - patcher - finish create patch process 
+09-12 18:06 root         INFO     - test_tools - predictor - finish predict process
+09-12 18:06 root         INFO     - test_tools - segmentor - finish segmentation process
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - finished prediction
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - [[7089486    2195]
+ [   8173    9283]]
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7091681
+          1       0.81      0.53      0.64     17456
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - f1 score is 0.64166724269
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - person 1 time 2
+09-12 18:06 root         INFO     - test_multimodel - MainProcess - predict images
+09-12 18:06 root         INFO     - test_tools - patcher - start create patch process 
+09-12 18:06 root         INFO     - test_tools - patcher - patches for model
+09-12 18:06 root         INFO     - test_tools - predictor - start predict process
+09-12 18:06 root         INFO     - test_tools - predictor - loading model
+09-12 18:06 root         INFO     - test_tools - segmentor - start segmentation process
+09-12 18:06 root         INFO     - test_tools - predictor - start predict with model
+09-12 18:07 root         INFO     - test_tools - patcher - finish create patch process 
+09-12 18:07 root         INFO     - test_tools - predictor - finish predict process
+09-12 18:07 root         INFO     - test_tools - segmentor - finish segmentation process
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - finished prediction
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - [[7091471    2685]
+ [   6232    8749]]
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7094156
+          1       0.77      0.58      0.66     14981
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - f1 score is 0.662426651524
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - person 1 time 3
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - predict images
+09-12 18:07 root         INFO     - test_tools - patcher - start create patch process 
+09-12 18:07 root         INFO     - test_tools - patcher - patches for model
+09-12 18:07 root         INFO     - test_tools - predictor - start predict process
+09-12 18:07 root         INFO     - test_tools - predictor - loading model
+09-12 18:07 root         INFO     - test_tools - segmentor - start segmentation process
+09-12 18:07 root         INFO     - test_tools - predictor - start predict with model
+09-12 18:07 root         INFO     - test_tools - patcher - finish create patch process 
+09-12 18:07 root         INFO     - test_tools - predictor - finish predict process
+09-12 18:07 root         INFO     - test_tools - segmentor - finish segmentation process
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - finished prediction
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - [[7089556    1755]
+ [   9979    7847]]
+09-12 18:07 root         INFO     - test_multimodel - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7091311
+          1       0.82      0.44      0.57     17826
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:08 root         INFO     - test_multimodel - MainProcess - f1 score is 0.572189003938
+09-12 18:08 root         INFO     - test_multimodel - MainProcess - person 1 time 4
+09-12 18:08 root         INFO     - test_multimodel - MainProcess - predict images
+09-12 18:08 root         INFO     - test_tools - patcher - start create patch process 
+09-12 18:08 root         INFO     - test_tools - patcher - patches for model
+09-12 18:08 root         INFO     - test_tools - predictor - start predict process
+09-12 18:08 root         INFO     - test_tools - predictor - loading model
+09-12 18:08 root         INFO     - test_tools - segmentor - start segmentation process
+09-12 18:08 root         INFO     - test_tools - predictor - start predict with model
+09-12 18:08 root         INFO     - test_tools - patcher - finish create patch process 
+09-12 18:08 root         INFO     - test_tools - predictor - finish predict process
+09-12 18:08 root         INFO     - test_tools - segmentor - finish segmentation process
+09-12 18:08 root         INFO     - test_multimodel - MainProcess - finished prediction
+09-12 18:08 root         INFO     - test_multimodel - MainProcess - [[7090635    2076]
+ [   9652    6774]]
+09-12 18:08 root         INFO     - test_multimodel - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7092711
+          1       0.77      0.41      0.54     16426
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:08 root         INFO     - test_multimodel - MainProcess - f1 score is 0.536002532046

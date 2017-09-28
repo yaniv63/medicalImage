@@ -1,0 +1,5 @@
+05-21 15:41 root         DEBUG    - train_multimodel - start script
+05-21 15:41 root         INFO     - train_multimodel - Train: [1 2 3] Val [4] 
+05-21 15:41 root         DEBUG    - train_multimodel - training model FLAIR_axial fold 0
+05-21 15:41 root         DEBUG    - train_multimodel - creating callbacks
+05-21 15:41 root         DEBUG    - train_multimodel - creating train & val generators

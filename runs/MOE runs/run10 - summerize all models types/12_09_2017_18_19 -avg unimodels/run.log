@@ -1,0 +1,48 @@
+09-12 18:19 root         INFO     - average_predictors - MainProcess - check avarage person 1  time 1
+09-12 18:19 root         INFO     - average_predictors - MainProcess - [[7089146    2535]
+ [   7443   10013]]
+09-12 18:19 root         INFO     - average_predictors - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7091681
+          1       0.80      0.57      0.67     17456
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:19 root         INFO     - average_predictors - MainProcess - f1 score is 0.667444340755
+09-12 18:19 root         INFO     - average_predictors - MainProcess - check avarage person 1  time 2
+09-12 18:19 root         INFO     - average_predictors - MainProcess - [[7091083    3073]
+ [   4398   10583]]
+09-12 18:19 root         INFO     - average_predictors - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7094156
+          1       0.77      0.71      0.74     14981
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:19 root         INFO     - average_predictors - MainProcess - f1 score is 0.739113733981
+09-12 18:19 root         INFO     - average_predictors - MainProcess - check avarage person 1  time 3
+09-12 18:20 root         INFO     - average_predictors - MainProcess - [[7089361    1950]
+ [   8709    9117]]
+09-12 18:20 root         INFO     - average_predictors - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7091311
+          1       0.82      0.51      0.63     17826
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:20 root         INFO     - average_predictors - MainProcess - f1 score is 0.631087114526
+09-12 18:20 root         INFO     - average_predictors - MainProcess - check avarage person 1  time 4
+09-12 18:20 root         INFO     - average_predictors - MainProcess - [[7090405    2306]
+ [   8449    7977]]
+09-12 18:20 root         INFO     - average_predictors - MainProcess - 
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00   7092711
+          1       0.78      0.49      0.60     16426
+
+avg / total       1.00      1.00      1.00   7109137
+
+09-12 18:20 root         INFO     - average_predictors - MainProcess - f1 score is 0.597326743794

@@ -1,0 +1,24 @@
+08-23 08:40 root         DEBUG    - train_multimodel - MainProcess - start script
+08-23 08:40 root         INFO     - train_multimodel - MainProcess - TRAIN: [(2, 1), (2, 2), (2, 3), (2, 4), (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (4, 1), (4, 2), (4, 3), (4, 4)] VAL: [(5, 1), (5, 2), (5, 3), (5, 4)] , TEST: 1
+08-23 08:40 root         INFO     - train_multimodel - MainProcess - training model test_1_axial
+08-23 08:40 root         DEBUG    - train_multimodel - MainProcess - creating train & val generators
+08-23 08:48 root         DEBUG    - train_proccesses - random_batch_indexes - start random_batch_indexes
+08-23 08:48 root         DEBUG    - train_proccesses - collect_batch - start collect_batch
+08-23 08:48 root         DEBUG    - train_proccesses - MainProcess - start batch generator
+08-23 08:49 root         INFO     - train_proccesses - MainProcess - finished
+08-23 08:49 root         INFO     - train_multimodel - MainProcess - training combined model
+08-23 08:49 root         DEBUG    - train_proccesses - random_batch_indexes - start random_batch_indexes
+08-23 08:49 root         DEBUG    - train_proccesses - collect_batch - start collect_batch
+08-23 08:50 root         DEBUG    - train_proccesses - MainProcess - start batch generator
+08-23 08:57 root         DEBUG    - train_tools - MainProcess - epoch 0 loss 1.40272 acc 0.64996 fmeasure 0.67969 val_loss 1.12766 val_acc 0.78428 val_fmeasure0.76883 
+08-23 09:04 root         DEBUG    - train_tools - MainProcess - epoch 1 loss 0.98824 acc 0.79309 fmeasure 0.79507 val_loss 0.90609 val_acc 0.80728 val_fmeasure0.80271 
+08-23 09:12 root         DEBUG    - train_tools - MainProcess - epoch 2 loss 0.73593 acc 0.86230 fmeasure 0.86295 val_loss 0.75400 val_acc 0.82331 val_fmeasure0.81927 
+08-23 09:19 root         DEBUG    - train_tools - MainProcess - epoch 3 loss 0.60205 acc 0.88024 fmeasure 0.88064 val_loss 0.68356 val_acc 0.79906 val_fmeasure0.77503 
+08-23 09:27 root         DEBUG    - train_tools - MainProcess - epoch 4 loss 0.50353 acc 0.89644 fmeasure 0.89703 val_loss 0.54192 val_acc 0.86517 val_fmeasure0.86791 
+08-23 09:34 root         DEBUG    - train_tools - MainProcess - epoch 5 loss 0.43713 acc 0.90781 fmeasure 0.90857 val_loss 0.50776 val_acc 0.85092 val_fmeasure0.84454 
+08-23 09:42 root         DEBUG    - train_tools - MainProcess - epoch 6 loss 0.39440 acc 0.91370 fmeasure 0.91447 val_loss 0.49070 val_acc 0.84395 val_fmeasure0.83286 
+08-23 09:49 root         DEBUG    - train_tools - MainProcess - epoch 7 loss 0.36465 acc 0.91758 fmeasure 0.91850 val_loss 0.42711 val_acc 0.88315 val_fmeasure0.88651 
+08-23 09:57 root         DEBUG    - train_tools - MainProcess - epoch 8 loss 0.34331 acc 0.92040 fmeasure 0.92124 val_loss 0.41205 val_acc 0.87971 val_fmeasure0.87961 
+08-23 10:04 root         DEBUG    - train_tools - MainProcess - epoch 9 loss 0.32970 acc 0.92238 fmeasure 0.92324 val_loss 0.40245 val_acc 0.88099 val_fmeasure0.88217 
+08-23 10:04 root         ERROR    - train_multimodel - MainProcess - Uncaught exception: generator already executing
+None
