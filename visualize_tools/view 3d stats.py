@@ -45,7 +45,7 @@ person = 1
 time = 2
 w = 16
 
-stats_path ='/media/sf_shared/src/medicalImaging/prod/runs/19_09_2017_16_17 - hard batching combined with stats/'#'/media/sf_shared/src/medicalImaging/prod/runs/18_09_2017_12_47 - combined train after hard + batching/' #'/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
+stats_path ='/media/sf_shared/src/medicalImaging/prod/runs/01_10_2017_12_53/'#'/media/sf_shared/src/medicalImaging/prod/runs/18_09_2017_12_47 - combined train after hard + batching/' #'/media/sf_shared/src/medicalImaging/prod/runs/22_08_2017_15_46 -  stats moe1 person 1 time 2/stats_{}_{}.npy'.format(person,time)
 stats_path += 'stats_{}_{}.npy'.format(person,time)
 stats = np.load(stats_path)
 labels = load_lables(person,time,doc_num= 1)
@@ -58,8 +58,8 @@ for stat,patch in zip(less_stats,patches):
     index=  stat[0]
     printable_index = tuple(x+1 for x in index)
     label = labels[index]
-    prob = stat[1][0]
-    decisions = stat[1][1:4]
+    prob = stat[1][1]
+    decisions = stat[1][2:5]
     prediction = np.dot(prob,decisions)
     flair_patches =   [p[0] for p in patch]
     f, axarr = plt.subplots(1,3)

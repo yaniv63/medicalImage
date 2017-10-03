@@ -41,14 +41,14 @@ def model_pred(model, patches,has_stats):
     return predictions
 
 
-def get_model():
-    # model = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
-    # model.load_weights(weight_path)
-    # out_model = Model(input=model.input, output=model.outputs[0])
-    weight_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
-    model = one_predictor_model(N_mod=4,index=0)
-    model.load_weights(weight_path + 'model_test_1_axial_fold_0.h5')
-    return model
+# def get_model():
+#     # model = n_experts_combined_model_gate_parameters(n=3,N_mod=4)
+#     # model.load_weights(weight_path)
+#     # out_model = Model(input=model.input, output=model.outputs[0])
+#     weight_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
+#     model = one_predictor_model(N_mod=4,index=0)
+#     model.load_weights(weight_path + 'model_test_1_axial_fold_0.h5')
+#     return model
 
 
 if __name__ == "__main__":
@@ -60,13 +60,12 @@ if __name__ == "__main__":
     # person  =1
     # time =2
 
-
-    weight_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run13- multilabel moe/lr_0.0001/model_test_1_fold_0.h5'
-
+    from mymodel import get_model
     model = get_model()
     logger.info("test model axial")
 
-    test_list = [[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)]]
+    #test_list = [[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)]]
+    test_list = [[(5, x) for x in range(1, 5)]]
     test_list_unified = [item for sublist in test_list for item in sublist]
     global_pred = []
     global_labels = []
@@ -80,8 +79,8 @@ if __name__ == "__main__":
         mask = get_combined_mask(wm_mask,test_images['FLAIR'])
         vol_shape = test_images[mri_contrasts[0]].shape
 
-        index_list,patches = patch_index_list(test_indexes,test_images,mri_contrasts,[views[0]],vol_shape)
-        predictions = model_pred(model,patches,has_stats=False)
+        index_list,patches = patch_index_list(test_indexes,test_images,mri_contrasts,views,vol_shape)
+        predictions = model_pred(model,patches,has_stats=True)
         pred_hard = [0 if pred[0] <0.5 else 1 for pred in predictions]
 
         labels = load_lables(person, time, doc_num=1)

@@ -76,14 +76,14 @@ test = test_data[test_person]
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
 unimodel = False
-uniview = ['sagittal']
+uniview = [views[0]]
 weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run12- freeze conv & first dense layer experts, (gate not freezed)/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/'#freeze gate and convolusion/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
 
 logger.info("checking multimodel no pretrain")
 for person, time in  test:
     logger.info("person {} time {}".format(person,time))
     if unimodel:
-        test_model(weight_path, person, time, True, mri_contrasts, uniview,view = uniview[0], use_stats=False)
+        test_model(weight_path, person, time, True, mri_contrasts, uniview,view = uniview[0], use_stats=True)
     else:
-        test_model(weight_path, person, time, False, mri_contrasts,views, use_stats=False)
+        test_model(weight_path, person, time, False, mri_contrasts,views, use_stats=True)
 

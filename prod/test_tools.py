@@ -137,93 +137,35 @@ def load_unimodel(weight_dir,args):
     from keras.optimizers import SGD
     optimizer = SGD(lr=0.01, nesterov=True)
 
-    model = one_predictor_model(N_mod=4, img_rows=33, img_cols=33,index=2)
-    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    #model.load_weights('/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/model_test_1_coronal_fold_0.h5')
-    model.load_weights(weight_dir + 'model_{}_fold_{}.h5'.format(args['name'],args['fold']),by_name=True)
-    model.load_weights(weight_dir + 'sagittal_expert.h5',by_name=True)
+    # model = one_predictor_model(N_mod=4, img_rows=33, img_cols=33,index=2)
+    # model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
+    # #model.load_weights('/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/model_test_1_coronal_fold_0.h5')
+    # model.load_weights(weight_dir + 'model_{}_fold_{}.h5'.format(args['name'],args['fold']),by_name=True)
+    # model.load_weights(weight_dir + 'sagittal_expert.h5',by_name=True)
+
+    # from test_on_indexes import get_model
+    # model = get_model()
 
     return model
 
 
 def load_model(weight_dir,args):
-    from multi_predictors_combined import n_predictors_combined_model,n_parameters_combined_model,n_experts_combined_model,n_experts_combined_model_gate_parameters,n_experts_combined_model_gate_parameters_test
-    from keras.optimizers import SGD
 
-    optimizer = SGD(lr=0.01,nesterov=True)
-    #combined_model = n_predictors_combined_model(n=args['n'])
-    #combined_model = n_parameters_combined_model(n=args['n'], N_mod=4, img_rows=33, img_cols=33)
-    #combined_model = n_experts_combined_model(n=args['n'])
-    #combined_model = n_experts_combined_model_gate_parameters(n=args['n'], N_mod=4, img_rows=33, img_cols=33)
+    from mymodel import get_model
+    from mymodel import get_model
+    combined_model = get_model()
 
-    #combined_model = n_experts_combined_model_gate_parameters(n=args['n'],N_mod=4)
-    combined_model = n_experts_combined_model_gate_parameters(n=args['n'],N_mod=4)
-    #combined_model.load_weights(weight_dir + 'coronal_expert.h5', by_name=True)
+    #combined_model.load_weights(weight_dir + 'model_test_1_fold_0.h5',by_name=True)
 
-    # combined_model.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-    # #combined_model.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-    #
-    # combined_model.get_layer('Seq_1').load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-    # #combined_model.load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-    #
-    # combined_model.get_layer('Seq_2').load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-    #combined_model.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-    layer_dict = dict([(layer.name, layer) for layer in combined_model.layers])
-    for i in range(3):
-        expert_layers_dict = dict([(layer.name, layer) for layer in layer_dict['Seq_{}'.format(i)].layers])
-        for layer in expert_layers_dict.values():
-            if 'dense2' not in layer.name:
-                layer.trainable = False
-    # for layer in layer_dict.values():
-    #     if 'gate' in layer.name:
-    #         layer.trainable = False
-    optimizer = SGD(lr=0.01, nesterov=True)
-    combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    #combined_model.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
-    combined_model.load_weights(weight_dir + 'model_test_1_fold_0.h5',by_name=True)
-
-   # combined_model.load_weights(parameters_path +'combined_weights_{}.h5'.format(args['test_person']))
-
-    combined_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-
-
-    # combined_model.get_layer('Seq_0').load_weights(weight_dir + 'model_test_1_axial_fold_0.h5', by_name=True)
-    # combined_model.get_layer('Seq_1').load_weights(weight_dir + 'model_test_1_coronal_fold_0.h5', by_name=True)
-    # combined_model.get_layer('Seq_2').load_weights(weight_dir + 'model_test_1_sagittal_fold_0.h5', by_name=True)
     return combined_model
 
 
 def test_coefficients_model(w_path,args):
     from multi_predictors_combined import n_experts_combined_model_gate_parameters,n_experts_combined_model,n_experts_combined_model_gate_parameters_test
     from keras.models import Model
-    #model = n_experts_combined_model_gate_parameters(n=3, N_mod=4, img_rows=33, img_cols=33)  # create the original model
-    #model = n_experts_combined_model(n=3, N_mod=4, img_rows=33, img_cols=33)
-    #model = n_experts_combined_model_gate_parameters()
-    model=n_experts_combined_model_gate_parameters()
+    from mymodel import get_model
+    model = get_model()
     #model.load_weights(w_path+ 'model_test_1_fold_0.h5'.format(args['test_person']),by_name=True)
-    # model.load_weights(weight_dir + 'model_{}_fold_{}.h5'.format(args['name'], args['fold']), by_name=True)
-    # model.load_weights(weight_dir + 'axial_expert.h5', by_name=True)
-
-    # model.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-    # #model.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-    #
-    # model.get_layer('Seq_1').load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-    # #model.load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-    #
-    # model.get_layer('Seq_2').load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-    # #model.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-    #
-    # model.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
-    layer_dict = dict([(layer.name, layer) for layer in model.layers])
-    for i in range(3):
-        expert_layers_dict = dict([(layer.name, layer) for layer in layer_dict['Seq_{}'.format(i)].layers])
-        for layer in expert_layers_dict.values():
-            if 'dense' not in layer.name:
-                layer.trainable = False
-    for layer in layer_dict.values():
-        if 'gate' in layer.name:
-            layer.trainable = False
-    model.load_weights(w_path+ 'model_test_1_fold_0.h5'.format(args['test_person']),by_name=True)
 
 
     layer_name1 = 'out_gate'
@@ -236,9 +178,6 @@ def test_coefficients_model(w_path,args):
                                              model.get_layer("perception_0").output,
                                              model.get_layer("perception_1").output,
                                              model.get_layer("perception_2").output])
-    # intermediate_layer_model = Model(input=model.input,
-    #       output=[model.get_layer("Seq_gate").get_output_at(1), model.get_layer("Seq_0").get_output_at(1),
-    #               model.get_layer("Seq_1").get_output_at(1), model.get_layer("Seq_2").get_output_at(1)])
 
     return intermediate_layer_model
 

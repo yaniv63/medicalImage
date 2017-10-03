@@ -27,4 +27,20 @@ def get_model():
             layer.trainable = False
     optimizer = SGD(lr=0.001, nesterov=True)
     moe.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', 'fmeasure'])
-    return moe
+
+    # w_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run13- multilabel moe/lr_0.01/model_test_1_fold_0_lr_0.01.h5'
+    # w1= moe.get_weights()
+    # moe.load_weights(w_path)
+    # w2 =moe.get_weights()
+
+    layer_name1 = 'out_gate'
+    intermediate_layer_model = Model(input=moe.input,
+                                     output=[moe.output,
+                                             moe.get_layer(layer_name1).get_output_at(0),
+                                             moe.get_layer('out0').output,
+                                             moe.get_layer('out1').output,
+                                             moe.get_layer('out2').output,
+                                             moe.get_layer("perception_0").output,
+                                             moe.get_layer("perception_1").output,
+                                             moe.get_layer("perception_2").output])
+    return intermediate_layer_model
