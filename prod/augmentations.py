@@ -17,6 +17,7 @@ def plt_image_patch(image,patch,r1=None,r2=None):
     plt.imshow(image, cmap=matplotlib.cm.gray)
     plt.figure();
     plt.imshow(patch, cmap=matplotlib.cm.gray)
+    plt.show()
 
 def flip_axis(x, axis):
     x = np.asarray(x).swapaxes(axis, 0)
@@ -121,10 +122,12 @@ class AugmentationWorker(object):
     def worker_augmentation(self):
         while not self.__event.is_set():
             person, time, i, j, k = self.__input_queue.get()
+            #print ("index {},{},{}".format(i,j,k))
             patch_dict = defaultdict(list)
             samples = []
             image_dict = []
-            for view in self.__views:
+            for contrast in self.__contrasts:
+                volume = self.__data[person][time][contrast]
                 if self.__rescale:
                     factor = np.random.uniform(self.__lowbound, self.__highbound)
                 if self.__rotate:
@@ -132,8 +135,8 @@ class AugmentationWorker(object):
                 if self.__flip:
                     randlr = np.random.random()
                     randud = np.random.random()
-                for contrast in self.__contrasts:
-                    volume = self.__data[person][time][contrast]
+                for view in self.__views:
+                    #volume = self.__data[person][time][contrast]
                     image,roi_mask = get_image(volume,view,i,j,k)
                     if self.__rescale:
                         image,roi_mask = rescale(image,roi_mask,factor,self.__binary_element)
@@ -147,8 +150,8 @@ class AugmentationWorker(object):
                     if self.__flip:
                         patch = flip_patch(patch,self.__flip_chance,randlr,randud)
                     patch_dict[contrast].append(patch)
-                    #image_dict.append(image)
-                    #plt_image_patch(image, patch, r1, r2)
+                    # image_dict.append(image)
+                    # plt_image_patch(image, patch, r1, r2)
             for x in  self.__contrasts:
                 sample = patch_dict[x]
                 samples.append(sample)
@@ -197,7 +200,7 @@ if __name__ == "__main__":
 
     input_q = JoinableQueue(10)
     output_q = JoinableQueue(10)
-    contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
+    contrasts = ['FLAIR']#, 'T2', 'MPRAGE', 'PD']
     views = ['axial', 'coronal', 'sagittal']
     PersonTrainList = [(1, 2)]
     w=16
