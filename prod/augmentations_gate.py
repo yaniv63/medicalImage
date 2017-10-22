@@ -125,7 +125,8 @@ class AugmentationWorker(object):
             patch_dict = defaultdict(list)
             samples = []
             image_dict = []
-            for view in self.__views:
+            for contrast in self.__contrasts:
+                volume = self.__data[person][time][contrast]
                 if self.__rescale:
                     factor = np.random.uniform(self.__lowbound, self.__highbound)
                 if self.__rotate:
@@ -133,8 +134,7 @@ class AugmentationWorker(object):
                 if self.__flip:
                     randlr = np.random.random()
                     randud = np.random.random()
-                for contrast in self.__contrasts:
-                    volume = self.__data[person][time][contrast]
+                for view in self.__views:
                     image,roi_mask = get_image(volume,view,i,j,k)
                     if self.__rescale:
                         image,roi_mask = rescale(image,roi_mask,factor,self.__binary_element)
@@ -147,10 +147,10 @@ class AugmentationWorker(object):
                     patch = crop_patch(image,r1,r2,self.__w)
                     if self.__flip:
                         patch = flip_patch(patch,self.__flip_chance,randlr,randud)
-                    patch_dict[view].append(patch)
+                    patch_dict[contrast].append(patch)
                     image_dict.append(image)
                     #plt_image_patch(image, patch, r1, r2)
-            for x in  self.__views:
+            for x in  self.__contrasts:
                 sample = patch_dict[x]
                 samples.append(sample)
             self.__input_queue.task_done()

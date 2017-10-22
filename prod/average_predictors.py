@@ -9,7 +9,7 @@ from logging_tools import get_logger
 run_dir = get_run_dir()
 logger = get_logger(run_dir)
 
-init_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run10 - summerize all models types/avg model/probs/'
+init_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run15-contrast experts/avg/all unimodel predicitions/'
 prob_plot = []
 person = 1
 
@@ -28,8 +28,8 @@ def load_lables(person,time,doc_num):
 for person, time in  test_data:
     prob_plots = []
     logger.info("check avarage person {}  time {}".format(person,time))
-    for view in views:
-        prob_plots.append(np.load(init_path+'prob_plot_{}_{}_{}.npy'.format(person,time,view)))
+    for contrast in mri_contrasts:
+        prob_plots.append(np.load(init_path+'prob_plot_{}_{}_{}.npy'.format(person,time,contrast)))
     av = np.array(prob_plots).mean(axis=0)
     pred = (av > 0.5)*1
     labels = load_lables(person,time,1)

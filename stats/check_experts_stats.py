@@ -19,21 +19,21 @@ if purpose == 'check if relevant':
 
         return np.round(row['exp1'], 0) == row['labels'] or \
                         np.round(row['exp2'], 0) == row['labels'] or \
-                        np.round(row['exp3'], 0) == row['labels']
+                        np.round(row['exp3'], 0) == row['labels'] or \
+                        np.round(row['exp4'], 0) == row['labels']
 
 
     def exist_difference_between_experts(row):
-        experts = [row['exp1'], row['exp2'], row['exp3']]
+        experts = [row['exp1'], row['exp2'], row['exp3'],row['exp4']]
         experts.sort()
         if row['labels'] == 0:
             exp1, exp2 = experts[0], experts[1]
         else:
-            exp1, exp2 = experts[1], experts[2]
+            exp1, exp2 = experts[3], experts[2]
         return abs(exp1 - exp2) > 0.1
 
     data = np.array([[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)],
-            [(5,x) for x in range(1,5)],[(1,x) for x in range(1,5)]])
-    #data = [[(1,x) for x in range(1,5)]]
+            [(5,x) for x in range(1,5)],[(1,x) for x in range(1,5)],[(1,x) for x in range(1,5)]])
     all_dfs = []
     for index_list in data:
         dfs = []
@@ -48,20 +48,35 @@ if purpose == 'check if relevant':
             exp1 = []
             exp2 = []
             exp3 = []
+            exp4 = []
+            exp1_vec = []
+            exp2_vec = []
+            exp3_vec = []
+            exp4_vec = []
             stat_labels = []
             indexes =  []
             for stat in stats:
                 indexes.append((person,time,stat[0][0],stat[0][1],stat[0][2]))
                 stat_labels.append(labels[stat[0]])
-                exp1.append(stat[1][1][0])
-                exp2.append(stat[1][2][0])
-                exp3.append(stat[1][3][0])
+                exp1.append(stat[1][2][0])
+                exp2.append(stat[1][3][0])
+                exp3.append(stat[1][4][0])
+                exp4.append(stat[1][5][0])
+                exp1_vec.append(stat[1][6])
+                exp2_vec.append(stat[1][7])
+                exp3_vec.append(stat[1][8])
+                exp4_vec.append(stat[1][9])
 
             df  =  pd.DataFrame()
             df['indexes'] = pd.Series(indexes)
             df['exp1'] = pd.Series(exp1)
             df['exp2'] = pd.Series(exp2)
             df['exp3'] = pd.Series(exp3)
+            df['exp4'] = pd.Series(exp4)
+            df['exp1_vec'] = pd.Series(exp1_vec)
+            df['exp2_vec'] = pd.Series(exp2_vec)
+            df['exp3_vec'] = pd.Series(exp3_vec)
+            df['exp4_vec'] = pd.Series(exp4_vec)
             df['labels'] = pd.Series(stat_labels)
 
             dfs.append(df)
@@ -73,16 +88,17 @@ if purpose == 'check if relevant':
         total_df['relevant'] = total_df.apply(lambda row: row['exp_correct'] == 1 and row['differece_between_exp'] ==1 ,axis=1)
         #total_df.to_csv('/media/sf_shared/src/medicalImaging/stats/test1_stats.csv')
         def hard_decision_expert(row):
-            experts = [row['exp1'],row['exp2'],row['exp3']]
+            experts = [row['exp1'],row['exp2'],row['exp3'],row['exp4']]
             if row['labels'] == 0:
                 max_expert =  np.argmin(experts)
             else:
                 max_expert  = np.argmax(experts)
-            x= to_categorical([max_expert],3).tolist()
+
+            x= to_categorical([max_expert],4).tolist()
             return x
 
         def soft_decision_expert(row):
-            experts = [row['exp1'],row['exp2'],row['exp3']]
+            experts = [row['exp1'],row['exp2'],row['exp3'],row['exp4']]
             if row['labels'] == 0:
                 experts = [ 1-expert for expert in experts]
             exponent_experts = [expert**exponent_soft for expert in experts]
@@ -91,7 +107,7 @@ if purpose == 'check if relevant':
             # print "normal " , normal_experts
             return normal_experts
 
-        df2 = pd.DataFrame(total_df[['indexes','exp1','exp2','exp3','labels']][total_df['relevant']==True])
+        df2 = pd.DataFrame(total_df[['indexes','exp1','exp2','exp3','exp4','exp1_vec','exp2_vec','exp3_vec','exp4_vec','labels']][total_df['relevant']==True])
         if expert_labeling == 'soft':
             method = soft_decision_expert
         elif expert_labeling == 'hard':
@@ -99,6 +115,7 @@ if purpose == 'check if relevant':
         df2['experts labels'] = df2.apply(method, axis=1)
         all_dfs.append(df2)
         indexes = []
+        vectors=[]
         outer = False
         for i,row in df2.iterrows():
             if outer:
@@ -110,11 +127,17 @@ if purpose == 'check if relevant':
 
             exp_labels = row['experts labels']
             indexes.append((index, exp_labels, true_label))
-
+            row_vec = (row['exp1_vec'],row['exp2_vec'],row['exp3_vec'],row['exp4_vec'])
+            vectors.append((row_vec,exp_labels,true_label))
         with open('gate_indexes_expert_labels_{}_person_{}.npy'.format(expert_labeling,person),'wb') as fp:
             np.save(fp, np.array(indexes))
-    # tot = pd.concat(all_dfs)
-    # tot.to_csv('/media/sf_shared/src/medicalImaging/prod/runs/12_09_2017_16_49 - same as above. fixed gate wights/all_train.csv')
+
+        with open('gate_parameters_samples_test1_set_{}.npy'.format(person), 'wb') as fp:
+            np.save(fp, np.array(vectors))
+
+
+    tot = pd.concat(all_dfs)
+    tot.to_csv('/media/sf_shared/src/medicalImaging/all_train.csv')
 if purpose == 'plot stats':
 
     def heatmap_probs(series1, series2, title):

@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     input_q = JoinableQueue(10)
     output_q = JoinableQueue(10)
-    contrasts = ['FLAIR']#, 'T2', 'MPRAGE', 'PD']
+    contrasts =['T2'] #['FLAIR', 'T2', 'MPRAGE', 'PD']
     views = ['axial', 'coronal', 'sagittal']
     PersonTrainList = [(1, 2)]
     w=16

@@ -5,7 +5,11 @@ from data_containers import load_index_list
 from multi_predictors_combined import gating_model_logistic_regression,gating_model_use_parameters
 from train_tools import create_callbacks
 
+
+
 class_label_method = 'hard'
+model_status = 'check'
+w_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run15-contrast experts/moe - pretrain experts and gate/model_test_1_fold_0.h5'
 
 if class_label_method =='hard':
     info_path = 'gate vectors - hard decision/'
@@ -37,21 +41,23 @@ for feature, class_label, true_label in indexes_val:
 features_v = np.array(features_v)
 labels_v = np.array(labels_v)
 labels_v = labels_v.squeeze()
-name= "gate_logistic_regression"
+name= "gate_model"
 callbacks = create_callbacks(name, fold=0)
 
-#model = gating_model_logistic_regression(N_exp=3)
-model = gating_model_use_parameters(N_exp=3)
+model = gating_model_use_parameters(N_exp=4)
 print model.input_shape
 optimizer = SGD(lr=0.01, nesterov=True)
 model.compile(optimizer=optimizer, loss='categorical_crossentropy',
                   metrics=['accuracy', 'fmeasure', 'precision', 'recall'])
-e = model.get_weights()
-model.load_weights('/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/model_test_1_fold_0.h5',by_name=True)
-e1 = model.get_weights()
-print "train model"
 
-#history = model.fit(features,labels,nb_epoch=80,validation_data=(features_v,labels_v),callbacks=callbacks)
+if model_status == 'check':
+    print "load model"
+    e = model.get_weights()
+    model.load_weights(w_path,by_name=True)
+    e1 = model.get_weights()
+else:
+    print "train model"
+    history = model.fit(features,labels,nb_epoch=80,validation_data=(features_v,labels_v),callbacks=callbacks)
 
 predict = model.predict(features)
 prediction = np.argmax(predict,axis=1)
@@ -79,4 +85,5 @@ print "classification \n \n {}".format(classification_report(true_labels,predict
 print "accuracy \n \n {}".format(accuracy_score(true_labels,prediction))
 print "confusion matrix  \n \n {}".format(confusion_matrix(true_labels,prediction))
 
-#model.save_weights('/media/sf_shared/src/medicalImaging/results/gate_parameters_test1.h5 ')
+if model_status != 'check':
+    model.save_weights('/media/sf_shared/src/medicalImaging/gate_parameters_test1.h5 ')

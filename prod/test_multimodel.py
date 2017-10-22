@@ -16,7 +16,7 @@ from test_tools import model_pred,patch_image,get_segmentation
 from plotting_tools import watch_predictions
 
 
-def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use_stats=False):
+def test_model(weight_path,person,time,is_unimodel,contrasts,views,contrast=None,use_stats=False):
     #load test
     test_images = load_contrasts(person, time, mri_contrasts)
     wm_mask = load_wm_mask(person, time)
@@ -34,7 +34,7 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use
     patch_p = Process(target=patch_image, args=(test_images, mask, contrasts, views, vol_shape, patch_q),
                       name='patcher')
     if is_unimodel:
-        args['name'] ='test_'+str(person)+'_' + view
+        args['name'] ='test_'+str(person)+'_' + contrast
         args['fold'] = 0
         model_p = Process(target=model_pred,args=(weight_path,patch_q,prediction_q,args,True),name='predictor')
     else:
@@ -55,7 +55,7 @@ def test_model(weight_path,person,time,is_unimodel,contrasts,views,view=None,use
     for i in process_list:
         i.join()
     logger.info("finished prediction")
-    model_name = str(person)+'_'+str(time)+'_'+view if is_unimodel else str(person)+'_'+str(time) + '_multimodel'
+    model_name = str(person)+'_'+str(time)+'_'+contrast if is_unimodel else str(person)+'_'+str(time) + '_multimodel'
     with open(run_dir + 'segmantation_{}.npy'.format(model_name), 'wb') as fp, open(run_dir + 'prob_plot_{}.npy'.format(model_name), 'wb') as fp1:
         np.save(fp, segmentation)
         np.save(fp1, prob_map)
@@ -76,14 +76,14 @@ test = test_data[test_person]
 mri_contrasts = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 views =['axial', 'coronal', 'sagittal']
 unimodel = False
-uniview = ['sagittal']
-weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run12- freeze conv & first dense layer experts, (gate not freezed)/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/'#freeze gate and convolusion/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
+contrast = ['PD']
+weight_path ='/media/sf_shared/src/medicalImaging/runs/MOE runs/run15-contrast experts/moe - pretrain experts and gate/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run11 - freeze gate & cnn for experts/'#freeze gate and convolusion/'#'/media/sf_shared/src/medicalImaging/runs/MOE runs/run3-return to inputs to gate/'# '/home/yaniv/Desktop/'
 
 logger.info("checking multimodel no pretrain")
 for person, time in  test:
     logger.info("person {} time {}".format(person,time))
     if unimodel:
-        test_model(weight_path, person, time, True, mri_contrasts, uniview,view = uniview[0], use_stats=False)
+        test_model(weight_path, person, time, True, contrast, views,contrast = contrast[0], use_stats=False)
     else:
         test_model(weight_path, person, time, False, mri_contrasts,views, use_stats=False)
 

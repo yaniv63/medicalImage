@@ -3,6 +3,7 @@ from collections import defaultdict
 from keras.models import Model
 from multi_predictors_combined import gating_model,n_experts_combined_model,n_experts_combined_model_gate_parameters
 from create_patches import can_extract_patch,extract_patch
+from mymodel import get_model
 from masks import get_combined_mask,load_wm_mask
 from data_containers import load_contrasts,load_lables,separate_classes_indexes,load_index_list,load_all_images
 from train_tools import combined_aggregate_genrated_samples_multiclass
@@ -22,7 +23,7 @@ person  =1
 time =2
 check_on_gate = False
 
-class_label_method = 'expert_labels_soft'
+class_label_method = 'expert_labels_hard'
 
 if class_label_method =='expert_labels_hard':
     indexes_path = 'gate vectors - hard decision/'
@@ -39,13 +40,13 @@ def patch_index_list(test_index_list, images, contrasts, views, vol_shape, w=16)
         person,time,i,j,k = index
         if can_extract_patch(vol_shape, i, j, k, w):
             index_list.append((i, j, k))
-            for view in views:
+            for contrast in contrasts:
                 patch_list = []
-                for contrast in contrasts:
+                for view in views:
                     patch = extract_patch(images[contrast], view, (i, j, k), w)
                     patch_list.append(patch)
-                patch_dict[view].append(patch_list)
-    for v in views:
+                patch_dict[contrast].append(patch_list)
+    for v in contrasts:
         sample = np.array(patch_dict[v])
         samples.append(sample)
     samples = np.concatenate(samples, axis=1)
@@ -70,23 +71,11 @@ for i,dlist in enumerate(person_time_list):
     indexes_per_class = separate_classes_indexes(indexes_list, 2)
     images_set = load_all_images(dlist, mri_contrasts)
 
-    patches,test_labels,experts = combined_aggregate_genrated_samples_multiclass(images_set, indexes_per_class, mri_contrasts, views,
+    patches,experts,test_labels = combined_aggregate_genrated_samples_multiclass(images_set, indexes_per_class, mri_contrasts, views,
                                                                                  batch_size=16, w=16, aug_args=None)
 
 
-    moe = n_experts_combined_model_gate_parameters(n=3,N_mod = 4, img_rows=33, img_cols=33)
-    moe.get_layer('Seq_0').load_weights(experts_path+'model_test_1_axial_fold_0.h5',by_name=True)
-    moe.load_weights(experts_path+'model_test_1_axial_fold_0.h5',by_name=True)
-
-    moe.get_layer('Seq_1').load_weights(experts_path+'model_test_1_coronal_fold_0.h5',by_name=True)
-    moe.load_weights(experts_path+'model_test_1_coronal_fold_0.h5',by_name=True)
-
-    moe.get_layer('Seq_2').load_weights(experts_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
-    moe.load_weights(experts_path+'model_test_1_sagittal_fold_0.h5',by_name=True)
-
-    #moe.load_weights(w_path_gate + 'gate_parameters_test1.h5',by_name=True)
-    #moe.get_layer('Seq_gate').load_weights(weight_path)
-    #moe.load_weights(experts_path + 'combined_weights_1.h5')
+    moe = get_model()
     moe_stats = Model(input=moe.input,
               output=[moe.output,moe.get_layer("out_gate").output,
                       # moe.get_layer("Seq_0").get_output_at(1),
@@ -94,15 +83,16 @@ for i,dlist in enumerate(person_time_list):
                       # moe.get_layer("Seq_2").get_output_at(1),
                       moe.get_layer("perception_0").output,
                       moe.get_layer("perception_1").output,
-                      moe.get_layer("perception_2").output
+                      moe.get_layer("perception_2").output,
+                      moe.get_layer("perception_3").output
                       ])
-    patches = np.split(patches,3,axis=1)
+    patches = np.split(patches,4,axis=1)
     predictions = model_pred(moe_stats,patches,has_stats=True)
 
 
     train_set = []
     for stat,label,expert in zip(predictions,test_labels,experts):
-        sample = ((stat[2],stat[3],stat[4]),label,expert)
+        sample = ((stat[2],stat[3],stat[4],stat[5]),label,expert)
         train_set.append(sample)
 
     with open('gate_parameters_samples_test1_set_{}.npy'.format(person), 'wb') as fp:

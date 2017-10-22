@@ -65,9 +65,6 @@ def random_vectors(class_indexes_set,batch_size):
 
 
 
-
-
-
 def batch_all_indexes(class_indexes_set,classes_indexes_queues):
     logger.debug("start batch_all_indexes")
     index_lists =[ [] for _ in range(len(class_indexes_set))]
@@ -104,8 +101,6 @@ def collect_all_patches(patches_queues,output_queue,size):
     output_queue.put((patches_list,experts_list,labels_list))
     output_queue.close()
     logger.info("finish collect_all_patches")
-
-
 
 
 def collect_batch(classes_queues,batch_queue,batch_size,event,predictor_num):

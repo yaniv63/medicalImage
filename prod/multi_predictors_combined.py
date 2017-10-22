@@ -54,7 +54,7 @@ def gating_model(N_exp,N_mod, img_rows, img_cols):
 
 def gating_model_use_parameters(N_exp):
     input = Input(shape=(N_exp*16,))
-    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2",input_shape=(48,))(input)
+    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2",input_shape=(N_exp*16,))(input)
     relu1 = LeakyReLU()(dense1)
     dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(relu1)
     relu2 = LeakyReLU()(dense2)
@@ -204,7 +204,7 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
     #gate = gating_model_use_parameters(N_exp=n)
     #gate
     gate_input = merge(inputs=perceptions,concat_axis=1,mode='concat')
-    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2", input_shape=(48,))(gate_input)
+    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2", input_shape=(n*16,))(gate_input)
     relu1 = LeakyReLU()(dense1)
     dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(relu1)
     relu2 = LeakyReLU()(dense2)
@@ -244,7 +244,7 @@ def n_experts_combined_model_gate_parameters_test(N_mod=4, img_rows=33, img_cols
     # gate = gating_model_use_parameters(N_exp=n)
     # gate
     gate_input = merge(inputs=perceptions, concat_axis=1, mode='concat')
-    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2", input_shape=(48,))(gate_input)
+    dense1 = Dense(16, name='dense1_gate', W_regularizer="l2", input_shape=(16*n,))(gate_input)
     relu1 = LeakyReLU()(dense1)
     dense2 = Dense(16, name='dense2_gate', W_regularizer="l2")(relu1)
     relu2 = LeakyReLU()(dense2)
@@ -261,10 +261,10 @@ def n_experts_combined_model_gate_parameters_test(N_mod=4, img_rows=33, img_cols
 
 
 
-# a = n_experts_combined_model(n=3,N_mod=4)
-# from keras.utils.visualize_util import plot
-# plot(a,to_file='gate_model_traditional.png',show_layer_names=True,show_shapes=True)
-# a.save_weights('sample_w.h5')
+a = predictor = n_parameters_combined_model(N_mod=3,n=4)
+from keras.utils.visualize_util import plot
+plot(a,to_file='gate_model_contrasts_parameters.png',show_layer_names=True,show_shapes=True)
+#a.save_weights('sample_w.h5')
 #
 # def gating_model(N_exp,N_mod, img_rows, img_cols):
 #     gate = create_smodel(N_exp*N_mod, img_rows, img_cols, index='gate')
