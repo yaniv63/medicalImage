@@ -4,7 +4,7 @@ from keras import backend as K
 import logging
 from itertools import product
 from collections import defaultdict
-
+import os
 from train_proccesses import TrainGenerator
 from train_proccesses_gate import TrainGeneratorMultiClass,TrainGeneratorMultiClassAggregator
 from keras.callbacks import  LambdaCallback, ModelCheckpoint,EarlyStopping,Callback
@@ -16,29 +16,99 @@ run_dir =get_run_dir()
 
 
 
+#def create_callbacks(name,fold):
+#    save_weights = ModelCheckpoint(filepath=run_dir + 'model_epoch_{epoch}_val_loss_{val_main_output_loss:.3f}_val_fmeasure_{val_main_output_fmeasure:.4f}.hdf5', monitor='val_main_output_loss',
+#                                   save_best_only=False,
+#                                   save_weights_only=True)
+#    print_logs = LambdaCallback(on_epoch_end=lambda epoch,logs:
+#    logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
+#                format(epoch, logs['main_output_loss'], logs['main_output_acc'], logs['main_output_fmeasure'], logs['val_main_output_loss'], logs['val_main_output_acc'],
+#                        logs['val_main_output_fmeasure'])))
+#    reducelr = ReduceLR(name,fold,0.8,patience=15,monitor = 'val_main_output_loss')
+#    early_stop = EarlyStopping(patience=50,monitor = 'val_main_output_loss')
+#    mycallbacks = [print_logs,save_weights,reducelr,early_stop]
+#    return mycallbacks
+#
+#
+#
+#
+#class ReduceLR(EarlyStopping):
+#
+#    def __init__(self,name,fold,factor,*args,**kwargs):
+#        super(ReduceLR,self).__init__(*args,**kwargs)
+#        self.name = name
+#        self.fold = fold
+#        self.factor = factor
+#
+#    def on_epoch_end(self, epoch, logs={}):
+#        current = logs.get(self.monitor)
+#        if current is None:
+#            logger.warn('Early stopping requires %s available!' %
+#                          (self.monitor), RuntimeWarning)
+#
+#        if self.monitor_op(current - self.min_delta, self.best):
+#            self.best = current
+#            self.wait = 0
+#        else:
+#            self.wait += 1
+#            if self.wait >= self.patience:
+#                logger.info('loading previous weights')
+#                self.model.load_weights(run_dir + 'model_{}_fold_{}.h5'.format(self.name, self.fold))
+#                self.wait = 0
+#                old_lr = float(K.get_value(self.model.optimizer.lr))
+#                new_lr = old_lr * self.factor
+#                K.set_value(self.model.optimizer.lr, new_lr)
+#                logger.info('\nEpoch {}: reducing learning rate from  {} to {}'.format(epoch,old_lr, new_lr))
+#
+
 def create_callbacks(name,fold):
-    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_main_output_loss',
-                                   save_best_only=True,
+    save_weights = ModelCheckpoint(filepath=run_dir + 'epoch_{epoch}-x-loss_{val_main_output_loss:.3f}-x-fmeasure_{val_main_output_fmeasure:.4f}.hdf5', monitor='val_main_output_loss',
+                                   save_best_only=False,
                                    save_weights_only=True)
     print_logs = LambdaCallback(on_epoch_end=lambda epoch,logs:
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
                 format(epoch, logs['main_output_loss'], logs['main_output_acc'], logs['main_output_fmeasure'], logs['val_main_output_loss'], logs['val_main_output_acc'],
                         logs['val_main_output_fmeasure'])))
-    reducelr = ReduceLR(name,fold,0.8,patience=15,monitor = 'val_main_output_loss')
+    reducelr = ReduceLR(name,fold,metric = 'loss',factor=0.8,patience=15,monitor = 'val_main_output_loss')
     early_stop = EarlyStopping(patience=50,monitor = 'val_main_output_loss')
     mycallbacks = [print_logs,save_weights,reducelr,early_stop]
     return mycallbacks
 
 
+def find_max_w_by_metric(path,metric):
+    '''
+    assume file name is a_avalue-x-b_bvalue-x-c_cvalue....extesion
+    -x- sign used for seperation
+    '''
+    files = {}
+    min_v = 1000
+    for filename in os.listdir(path):
+        files[filename] = {}
+        basename, extension = os.path.splitext(filename)
+        if extension =='.log':
+            continue
+        stats = basename.split('-x-')
+        for stat in stats:
+            name, value = stat.split('_')
+            files[filename][name] = float(value)
+    for filename, d in files.items():
+        if filename =='run.log':
+            continue
+        if d[metric] < min_v:
+            min_file = filename
+            min_v = d[metric]
+    return min_file
+
 
 
 class ReduceLR(EarlyStopping):
 
-    def __init__(self,name,fold,factor,*args,**kwargs):
+    def __init__(self,name,fold,metric,factor,*args,**kwargs):
         super(ReduceLR,self).__init__(*args,**kwargs)
         self.name = name
         self.fold = fold
         self.factor = factor
+        self.metric = metric
 
     def on_epoch_end(self, epoch, logs={}):
         current = logs.get(self.monitor)
@@ -53,12 +123,15 @@ class ReduceLR(EarlyStopping):
             self.wait += 1
             if self.wait >= self.patience:
                 logger.info('loading previous weights')
-                self.model.load_weights(run_dir + 'model_{}_fold_{}.h5'.format(self.name, self.fold))
+                w = find_max_w_by_metric(run_dir,self.metric)
+                logger.info('{}'.format(w))
+                self.model.load_weights(run_dir + w)
                 self.wait = 0
                 old_lr = float(K.get_value(self.model.optimizer.lr))
                 new_lr = old_lr * self.factor
                 K.set_value(self.model.optimizer.lr, new_lr)
-                logger.info('\nEpoch {}: reducing learning rate from  {} to {}'.format(epoch,old_lr, new_lr))
+                logger.info('\nEpoch {}: reducing learning rate from  {} to {} from file {}'.format(epoch,old_lr, new_lr,w))
+
 
 
 def flip_axis(x, axis):

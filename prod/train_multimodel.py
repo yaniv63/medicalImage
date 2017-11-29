@@ -27,24 +27,6 @@ from metrics import calc_confusion_mat,calc_dice
 from plotting_tools import *
 from train_proccesses import TrainGenerator
 
-def train(model,PersonTrainList,PersonValList,view_type,contrast_type,fold_num,name,batch_size=256):
-    logger.debug("creating callbacks")
-    callbacks = create_callbacks(name,fold_num)
-
-    logger.debug("creating train & val generators")
-
-    train_images,pos_train_list,neg_train_list = load_data(PersonTrainList,contrast_type)
-    train_generator = generator(pos_train_list, neg_train_list, train_images,view_type)
-    val_images,pos_val_list,neg_val_list = load_data(PersonValList,contrast_type)
-    val_set = aggregate_genrated_samples(pos_val_list, neg_val_list, val_images,view_type)
-
-    logger.info("training individual model")
-    epoch_size = calc_epoch_size(pos_train_list,batch_size)
-    history = model.fit_generator(train_generator, samples_per_epoch=epoch_size, nb_epoch=300, callbacks=callbacks,
-                                      validation_data=val_set)
-    confusion_mat = calc_confusion_mat(model, val_set[0], val_set[1], "individual val {}".format(fold_num))
-    calc_dice(confusion_mat, "individual val {}".format(fold_num))
-    return history
 
 def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):#256
 
@@ -54,12 +36,16 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16,num_labels=4)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
-    val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=4)
+    #val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=4)
+    #with open('./patches/val_set_{}'.format(test_person),'wb') as f:
+    #    pickle.dump(val_set,f)
+    with open('./patches/val_set_{}'.format(test_person),'rb') as f:
+       val_set = pickle.load(f)
     logger.info("training combined model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
-    e = gen.next()
+    #e = gen.next()
     history = model.fit_generator(gen, samples_per_epoch=epoch_size, nb_epoch=200, callbacks=callbacks,
                                   validation_data=val_set,nb_val_samples=val_size)
     gen.close()
@@ -72,7 +58,7 @@ def my_handler(type, value, tb):
     logger.exception("Uncaught exception: {0}".format(str(value)))
 
 # Install exception handler
-sys.excepthook = my_handler
+#sys.excepthook = my_handler
 
 # ######## train model
 
@@ -108,7 +94,8 @@ for train_index, test_index in kf.split(data):
     logger.info("training model {}".format(name))
     runs = []
     predictor = n_experts_combined_model_gate_parameters()
-    optimizer = SGD(lr=0.0001, nesterov=True)
+    predictor.load_weights('/home/ubuntu/src/medicalImage/trained_weights/multilabel/epoch_30-x-loss_0.203-x-fmeasure_0.9294.hdf5')
+    optimizer = SGD(lr=0.001, nesterov=True)
 #    predictor.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
 #    predictor.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
 #
@@ -119,7 +106,7 @@ for train_index, test_index in kf.split(data):
 #    predictor.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
 #
 #    predictor.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
-    predictor.load_weights('/home/ubuntu/src/medicalImage/runs/27_09_2017_00_05/' + 'model_test_1_fold_0.h5')
+#    predictor.load_weights('/home/ubuntu/src/medicalImage/runs/27_09_2017_00_05/' + 'model_test_1_fold_0.h5')
     predictor.compile(optimizer=optimizer,
                   loss={'main_output': 'binary_crossentropy',
                         'out0': 'binary_crossentropy',
