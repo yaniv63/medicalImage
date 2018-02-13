@@ -56,6 +56,9 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
     val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=4)
     logger.info("training combined model")
+    with open('./patches/val_set_{}'.format(test_person),'wb') as f:
+        pickle.dump(val_set,f)
+
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
@@ -100,7 +103,7 @@ for train_index, test_index in kf.split(data):
     train_data =X_train[:-1].tolist()
     train_d = [item for sublist in train_data for item in sublist]
     test_person = data[test_index][0][0][0]
-    if test_person != 2:
+    if test_person != 3:
         continue
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
