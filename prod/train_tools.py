@@ -29,7 +29,7 @@ def create_callbacks(name,fold):
                 format(epoch, logs['main_output_loss'], logs['main_output_acc'], logs['main_output_fmeasure'], logs['val_main_output_loss'], logs['val_main_output_acc'],
                         logs['val_main_output_fmeasure'])))
     reducelr = ReduceLR(name,fold,0.8,patience=15,monitor = 'val_main_output_loss')
-    early_stop = EarlyStopping(patience=50,monitor = 'val_main_output_loss')
+    early_stop = EarlyStopping(patience=30,monitor = 'val_main_output_loss')
     mycallbacks = [print_logs,save_weights,reducelr,early_stop,save_weights2]
     return mycallbacks
 
@@ -46,7 +46,7 @@ def create_callbacks_refrences(name,fold):
                 format(epoch, logs['loss'], logs['acc'], logs['fmeasure'], logs['val_loss'], logs['val_acc'],
                         logs['val_fmeasure'])))
     reducelr = ReduceLR(name,fold,0.8,patience=15,monitor = 'val_loss')
-    early_stop = EarlyStopping(patience=50,monitor = 'val_loss')
+    early_stop = EarlyStopping(patience=30,monitor = 'val_loss')
     mycallbacks = [print_logs,save_weights,reducelr,early_stop,save_weights2]
     return mycallbacks
 
