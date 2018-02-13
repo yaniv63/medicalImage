@@ -17,16 +17,20 @@ run_dir =get_run_dir()
 
 
 def create_callbacks(name,fold):
-    save_weights = ModelCheckpoint(filepath=run_dir + 'model_{}_fold_{}.h5'.format(name, fold), monitor='val_main_output_loss',
+    save_weights = ModelCheckpoint(filepath=run_dir + 'epoch_{epoch}-x-loss_{val_main_output_loss:.3f}-x-fmeasure_{val_main_output_fmeasure:.4f}.hdf5', monitor='val_main_output_loss',
                                    save_best_only=True,
                                    save_weights_only=True)
+    save_weights2 = ModelCheckpoint(filepath=run_dir + 'f1_epoch_{epoch}-x-loss_{val_main_output_loss:.3f}-x-fmeasure_{val_main_output_fmeasure:.4f}.hdf5', monitor='val_main_output_fmeasure',mode='max',
+                                   save_best_only=True,
+                                   save_weights_only=True)
+
     print_logs = LambdaCallback(on_epoch_end=lambda epoch,logs:
     logger.debug("epoch {} loss {:.5f} acc {:.5f} fmeasure {:.5f} val_loss {:.5f} val_acc {:.5f} val_fmeasure{:.5f} ".
                 format(epoch, logs['main_output_loss'], logs['main_output_acc'], logs['main_output_fmeasure'], logs['val_main_output_loss'], logs['val_main_output_acc'],
                         logs['val_main_output_fmeasure'])))
     reducelr = ReduceLR(name,fold,0.8,patience=15,monitor = 'val_main_output_loss')
     early_stop = EarlyStopping(patience=50,monitor = 'val_main_output_loss')
-    mycallbacks = [print_logs,save_weights,reducelr,early_stop]
+    mycallbacks = [print_logs,save_weights,reducelr,early_stop,save_weights2]
     return mycallbacks
 
 

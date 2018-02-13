@@ -100,7 +100,7 @@ for train_index, test_index in kf.split(data):
     train_data =X_train[:-1].tolist()
     train_d = [item for sublist in train_data for item in sublist]
     test_person = data[test_index][0][0][0]
-    if test_person != 1:
+    if test_person != 2:
         continue
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
@@ -108,7 +108,7 @@ for train_index, test_index in kf.split(data):
     logger.info("training model {}".format(name))
     runs = []
     predictor = n_experts_combined_model_gate_parameters()
-    optimizer = SGD(lr=0.0001, nesterov=True)
+    optimizer = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 #    predictor.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
 #    predictor.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
 #
@@ -119,7 +119,7 @@ for train_index, test_index in kf.split(data):
 #    predictor.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
 #
 #    predictor.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
-    predictor.load_weights('/home/ubuntu/src/medicalImage/runs/27_09_2017_00_05/' + 'model_test_1_fold_0.h5')
+#    predictor.load_weights('/home/ubuntu/src/medicalImage/runs/27_09_2017_00_05/' + 'model_test_1_fold_0.h5')
     predictor.compile(optimizer=optimizer,
                   loss={'main_output': 'binary_crossentropy',
                         'out0': 'binary_crossentropy',
