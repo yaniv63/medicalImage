@@ -109,12 +109,12 @@ def average_two_models_prediction():
     model = Model(input=[first_predictor_data,second_predictor_data],output=merged)
     return model
 
-def average_n_models_prediction(N_mod = 1, img_rows = 33, img_cols = 33,n=2):
+def average_n_models_prediction(N_mod = 4, img_rows = 33, img_cols = 33,n=3):
     predictors = []
     decisions = []
     data = []
     for i in range(n):
-        predictors.append(one_predictor_model(index=i))
+        predictors.append(one_predictor_model(N_mod=N_mod,index=i))
         data.append(Input(shape=(N_mod, img_rows, img_cols),name='input{}'.format(i)))
         decisions.append(predictors[i](data[i]))
     merged = merge(decisions,mode='ave',concat_axis=1)
