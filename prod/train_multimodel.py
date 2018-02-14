@@ -56,6 +56,9 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
     val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=4)
     logger.info("training combined model")
+    with open('./patches/val_set_{}'.format(test_person),'wb') as f:
+        pickle.dump(val_set,f)
+
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
     gen = train_generator.get_generator()
@@ -100,7 +103,7 @@ for train_index, test_index in kf.split(data):
     train_data =X_train[:-1].tolist()
     train_d = [item for sublist in train_data for item in sublist]
     test_person = data[test_index][0][0][0]
-    if test_person != 2:
+    if test_person != 3:
         continue
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
@@ -109,17 +112,6 @@ for train_index, test_index in kf.split(data):
     runs = []
     predictor = n_experts_combined_model_gate_parameters()
     optimizer = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-#    predictor.get_layer('Seq_0').load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-#    predictor.load_weights(experts_path + 'model_test_1_axial_fold_0.h5', by_name=True)
-#
-#    predictor.get_layer('Seq_1').load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-#    predictor.load_weights(experts_path + 'model_test_1_coronal_fold_0.h5', by_name=True)
-#
-#    predictor.get_layer('Seq_2').load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-#    predictor.load_weights(experts_path + 'model_test_1_sagittal_fold_0.h5', by_name=True)
-#
-#    predictor.load_weights(w_path_gate + 'gate_batching_hard.h5', by_name=True)
-#    predictor.load_weights('/home/ubuntu/src/medicalImage/runs/27_09_2017_00_05/' + 'model_test_1_fold_0.h5')
     predictor.compile(optimizer=optimizer,
                   loss={'main_output': 'binary_crossentropy',
                         'out0': 'binary_crossentropy',
