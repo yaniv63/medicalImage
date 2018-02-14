@@ -94,6 +94,8 @@ for train_index, test_index in kf.split(data):
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
     name="{}_test_{}".format(model,test_person)
+    if model=="single":
+        name = name+"_{}".format(angle)
     logger.info("training model {}".format(name))
     runs = []
     # predictor = average_n_models_prediction(N_mod = 4, img_rows = 33, img_cols = 33,n=3)
