@@ -69,7 +69,11 @@ logger.debug("start script")
 MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial','coronal', 'sagittal']
 
-model = "av"
+model = "single"
+view_angle = "a"
+angle = {"a":'axial',"c":'coronal',"s":'sagittal'}.get(view_angle)
+if model=="single":
+    view_list = [angle]
 predictor = {"av":average_n_models_prediction(N_mod=4,n=3),
          "conct":n_parameters_combined_model(N_mod=4,n=3),
          "single":one_predictor_model(N_mod=4)}.get(model)
