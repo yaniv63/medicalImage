@@ -17,7 +17,7 @@ import pickle
 from  itertools import product
 from sklearn.model_selection import KFold
 import sys
-
+import os.path
 
 from multi_predictors_combined import one_predictor_model,average_n_models_prediction,n_parameters_combined_model
 from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
@@ -26,7 +26,7 @@ from data_containers import load_data,load_all_data
 from plotting_tools import *
 from train_proccesses import TrainGenerator
 
-comp = "desktop"
+comp = "server"
 val_loc = "./patches/" if comp=="server" else "../runs/MOE runs/run17-multilabel-cross-validation/"
 
 def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):#256
@@ -36,9 +36,11 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16,num_labels=1)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
-    #val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=1)
-    with open(val_loc+'val_set_{}'.format(test_person), 'rb') as f:
-        val_set = pickle.load(f)
+    if os.path.isfile(val_loc + 'val_set_{}'.format(test_person)):
+        with open(val_loc+'val_set_{}'.format(test_person), 'rb') as f:
+            val_set = pickle.load(f)
+    else:
+        val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=1)
     if model_ref=="single":
         val_samples = val_set[0][view_list.index(angle)]
         val_l = val_set[1][0]
@@ -68,7 +70,7 @@ MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial','coronal', 'sagittal']
 
 model_ref = "single"
-view_angle = "a"
+view_angle = "c"
 
 
 if model_ref =="single":
