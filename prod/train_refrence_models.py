@@ -37,14 +37,18 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16,num_labels=1)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
     if os.path.isfile(val_loc + 'val_set_{}'.format(test_person)):
+        logger.info("use existing val set")
         with open(val_loc+'val_set_{}'.format(test_person), 'rb') as f:
             val_set = pickle.load(f)
+        if model_ref == "single":
+            val_samples = val_set[0][view_list.index(angle)]
+        else:
+            val_samples = val_set[0]
+        val_l = val_set[1][0]
+        val_set = (val_samples, val_l)
     else:
         val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=1)
-    if model_ref=="single":
-        val_samples = val_set[0][view_list.index(angle)]
-        val_l = val_set[1][0]
-        val_set = (val_samples,val_l)
+
     logger.info("training combined model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
