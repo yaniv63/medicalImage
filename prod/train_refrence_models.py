@@ -71,12 +71,17 @@ view_list = ['axial','coronal', 'sagittal']
 
 model = "single"
 view_angle = "a"
-angle = {"a":'axial',"c":'coronal',"s":'sagittal'}.get(view_angle)
-if model=="single":
+
+
+if model =="single":
+    angle = {"a": 'axial', "c": 'coronal', "s": 'sagittal'}.get(view_angle)
     view_list = [angle]
-predictor = {"av":average_n_models_prediction(N_mod=4,n=3),
-         "conct":n_parameters_combined_model(N_mod=4,n=3),
-         "single":one_predictor_model(N_mod=4)}.get(model)
+    predictor = one_predictor_model(N_mod=4)
+elif model == "av":
+    predictor = average_n_models_prediction(N_mod=4,n=3)
+elif model == "conct":
+    predictor = n_parameters_combined_model(N_mod=4,n=3)
+
 
 
 data = np.array([[(1,x) for x in range(1,5)],[(2,x) for x in range(1,5)],[(3,x) for x in range(1,6)],[(4,x) for x in range(1,5)],
