@@ -26,7 +26,8 @@ from data_containers import load_data,load_all_data
 from plotting_tools import *
 from train_proccesses import TrainGenerator
 
-
+comp = "desktop"
+val_loc = "./patches/" if comp=="server" else "../runs/MOE runs/run17-multilabel-cross-validation/"
 
 def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):#256
 
@@ -35,8 +36,13 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
     train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16,num_labels=1)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
-    val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=1)
-
+    #val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=1)
+    with open(val_loc+'val_set_{}'.format(test_person), 'rb') as f:
+        val_set = pickle.load(f)
+    if model_ref=="single":
+        val_samples = val_set[0][view_list.index(angle)]
+        val_l = val_set[1][0]
+        val_set = (val_samples,val_l)
     logger.info("training combined model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
@@ -52,34 +58,26 @@ def my_handler(type, value, tb):
     logger.exception("Uncaught exception: {0}".format(str(value)))
 
 # Install exception handler
-sys.excepthook = my_handler
+#sys.excepthook = my_handler
 
 # ######## train model
-
-station = 'server'
-if station == 'desktop':
-    experts_path = '/media/sf_shared/src/medicalImaging/runs/MOE runs/run5-moe with pretrained experts/'
-    w_path_gate = '/media/sf_shared/src/medicalImaging/results/'
-else:
-    experts_path = weight_path + '/moe/'
-    w_path_gate = weight_path + '/moe/'
 
 
 logger.debug("start script")
 MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial','coronal', 'sagittal']
 
-model = "single"
+model_ref = "single"
 view_angle = "a"
 
 
-if model =="single":
+if model_ref =="single":
     angle = {"a": 'axial', "c": 'coronal', "s": 'sagittal'}.get(view_angle)
     view_list = [angle]
     predictor = one_predictor_model(N_mod=4)
-elif model == "av":
+elif model_ref == "av":
     predictor = average_n_models_prediction(N_mod=4,n=3)
-elif model == "conct":
+elif model_ref == "conct":
     predictor = n_parameters_combined_model(N_mod=4,n=3)
 
 
@@ -94,12 +92,12 @@ for train_index, test_index in kf.split(data):
     train_data =X_train[:-1].tolist()
     train_d = [item for sublist in train_data for item in sublist]
     test_person = data[test_index][0][0][0]
-    if test_person != 2:
+    if test_person != 5:
         continue
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 
-    name="{}_test_{}".format(model,test_person)
-    if model=="single":
+    name="{}_test_{}".format(model_ref,test_person)
+    if model_ref=="single":
         name = name+"_{}".format(angle)
     logger.info("training model {}".format(name))
     runs = []
