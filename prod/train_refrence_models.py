@@ -48,7 +48,8 @@ def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,n
         val_set = (val_samples, val_l)
     else:
         val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=1)
-
+        with open('./patches/val_set_{}'.format(test_person), 'wb') as f:
+            pickle.dump(val_set, f)
     logger.info("training combined model")
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
