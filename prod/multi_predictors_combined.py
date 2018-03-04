@@ -4,7 +4,7 @@ Created on Mon Dec 26 16:42:11 2016
 
 @author: yaniv
 """
-from keras.layers import Dense,Input,merge, Convolution2D, LeakyReLU, MaxPooling2D, Dropout, Flatten,Layer
+from keras.layers import Dense,Input,merge, Convolution2D, LeakyReLU, MaxPooling2D, Dropout, Flatten,Layer,Activation
 from keras.models import Model, Sequential
 from keras.regularizers import l2
 import keras.backend as K
@@ -217,3 +217,50 @@ def n_experts_combined_model_gate_parameters(N_mod=4, img_rows=33, img_cols=33, 
     model = Model(input=data, output=outputs)
     return model
 
+
+
+def n_experts_combined_model_gate_attention(N_mod=4, img_rows=33, img_cols=33, n=3):
+    predictors = []
+    decisions = []
+    denses = []
+    denses2 = []
+    perceptions =[]
+    data = []
+    attention_w = []
+    for i in range(n):
+        predictors.append(create_smodel(N_mod, img_rows, img_cols, index=i))
+        data.append(Input(shape=(N_mod, img_rows, img_cols), name='input{}'.format(i)))
+        denses.append(predictors[i](data[i]))
+        denses2.append(Dense(16, name='dense2_{}'.format(i), W_regularizer="l2")(denses[i]))
+        perceptions.append(LeakyReLU(name='perception_{}'.format(i))(denses2[i]))
+        decisions.append(Dense(1, activation='sigmoid', name='out{}'.format(i), W_regularizer="l2")(perceptions[i]))
+
+    merged_decisions = merge(inputs=decisions,concat_axis=1,mode='concat')
+
+    #gate = gating_model_use_parameters(N_exp=n)
+    #gate
+    att_input = Input(shape=(16,))
+    dense1 = Dense(10, name='dense1_gate', W_regularizer="l2", input_shape=(16,))(att_input)
+    relu1 = LeakyReLU()(dense1)
+    dense2 = Dense(1, name='dense2_gate', W_regularizer="l2")(relu1)
+    # relu2 = LeakyReLU()(dense2)
+    att_module = Model(att_input,dense2,name="attention_out")
+
+    for i in range(n):
+        att_o = att_module(perceptions[i])
+        attention_w.append(att_o)
+    merged_attention = merge(inputs=attention_w,concat_axis=1,mode='concat')
+    coefficients = Activation('softmax')(merged_attention)
+        # Dense(n, activation='softmax', name='out_gate', W_regularizer="l2")(relu2)
+
+
+    #coefficients = gate(gate_input)
+    weighted_prediction = merge([coefficients, merged_decisions],mode='dot',concat_axis=1,name='main_output')
+    outputs = [weighted_prediction] + decisions
+    model = Model(input=data, output=outputs)
+    return model
+
+
+# a = n_experts_combined_model_gate_attention(n=3)
+# from keras.utils.visualize_util import plot
+# plot(a, to_file='model_att.png',show_layer_names=True,show_shapes=True)
