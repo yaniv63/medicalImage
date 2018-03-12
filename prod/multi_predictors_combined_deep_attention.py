@@ -237,67 +237,30 @@ def n_experts_combined_model_gate_attention(N_mod=4, img_rows=33, img_cols=33, n
 
     merged_decisions = merge(inputs=decisions,concat_axis=1,mode='concat')
 
-    #gate - attention
+    #gate = gating_model_use_parameters(N_exp=n)
+    #gate
     att_input = Input(shape=(16,))
     dense1 = Dense(10, name='dense1_gate', W_regularizer="l2", input_shape=(16,))(att_input)
     relu1 = LeakyReLU()(dense1)
     dense2 = Dense(1, name='dense2_gate', W_regularizer="l2")(relu1)
+    # relu2 = LeakyReLU()(dense2)
     att_module = Model(att_input,dense2,name="attention_out")
 
     for i in range(n):
         att_o = att_module(perceptions[i])
         attention_w.append(att_o)
     merged_attention = merge(inputs=attention_w,concat_axis=1,mode='concat')
-    coefficients = Activation('softmax',name='att_coef')(merged_attention)
+    coefficients = Activation('softmax')(merged_attention)
+        # Dense(n, activation='softmax', name='out_gate', W_regularizer="l2")(relu2)
 
+
+    #coefficients = gate(gate_input)
     weighted_prediction = merge([coefficients, merged_decisions],mode='dot',concat_axis=1,name='main_output')
     outputs = [weighted_prediction] + decisions
     model = Model(input=data, output=outputs)
     return model
 
-def one_expert_attention(N_mod=4, img_rows=33, img_cols=33, n=3):
-    predictors = []
-    decisions = []
-    denses = []
-    denses2 = []
-    perceptions =[]
-    data = []
-    attention_w = []
-    index= 0
-	
-    smodel = create_smodel(N_mod, img_rows, img_cols, index)
-    p_layer = Dense(16, name='dense2_{}'.format(index), W_regularizer="l2")
-    ac_p_layer = LeakyReLU(name='perception_{}'.format(index))
-    decision_layer = Dense(1, activation='sigmoid', name='out{}'.format(index), W_regularizer="l2")
-	
-    for i in range(n):
-        data.append(Input(shape=(N_mod, img_rows, img_cols), name='input{}'.format(i)))
-        denses.append(smodel(data[i]))
-        denses2.append(p_layer(denses[i]))
-        perceptions.append(ac_p_layer(denses2[i]))
-        decisions.append(decision_layer(perceptions[i]))
 
-    merged_decisions = merge(inputs=decisions,concat_axis=1,mode='concat')
-
-    #gate - attention
-    att_input = Input(shape=(16,))
-    dense1 = Dense(1, name='dense1_gate', W_regularizer="l2", input_shape=(16,))(att_input)
-    #relu1 = LeakyReLU()(dense1)
-    #dense2 = Dense(1, name='dense2_gate', W_regularizer="l2")(relu1)
-    att_module = Model(att_input,dense1,name="attention_out")
-
-    for i in range(n):
-        att_o = att_module(perceptions[i])
-        attention_w.append(att_o)
-    merged_attention = merge(inputs=attention_w,concat_axis=1,mode='concat')
-    coefficients = Activation('softmax',name='att_coef')(merged_attention)
-
-    weighted_prediction = merge([coefficients, merged_decisions],mode='dot',concat_axis=1,name='main_output')
-    model = Model(input=data, output=weighted_prediction)
-    return model
-	
-	
-# a = one_expert_attention(n=3)
-# print 3
+# a = n_experts_combined_model_gate_attention(n=3)
 # from keras.utils.visualize_util import plot
 # plot(a, to_file='model_att.png',show_layer_names=True,show_shapes=True)

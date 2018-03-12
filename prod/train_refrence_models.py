@@ -74,7 +74,7 @@ logger.debug("start script")
 MR_modalities = ['FLAIR', 'T2', 'MPRAGE', 'PD']
 view_list = ['axial','coronal', 'sagittal']
 
-model_ref = "single"
+model_ref = "av"
 view_angle = "c"
 
 
@@ -99,7 +99,7 @@ for train_index, test_index in kf.split(data):
     train_data =X_train[:-1].tolist()
     train_d = [item for sublist in train_data for item in sublist]
     test_person = data[test_index][0][0][0]
-    if test_person != 5:
+    if test_person != 4:
         continue
     logger.info("TRAIN: {} VAL: {} , TEST: {}".format(train_d,val_d,test_person))
 

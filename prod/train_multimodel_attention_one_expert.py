@@ -19,8 +19,8 @@ from sklearn.model_selection import KFold
 import sys
 
 
-from multi_predictors_combined import one_predictor_model,n_experts_combined_model_gate_parameters,n_experts_combined_model_gate_attention
-from train_tools import create_callbacks,generator,combined_generator,aggregate_genrated_samples\
+from multi_predictors_combined import one_predictor_model,n_experts_combined_model_gate_parameters,n_experts_combined_model_gate_attention,one_expert_attention
+from train_tools import create_callbacks_refrences,generator,combined_generator,aggregate_genrated_samples\
     , calc_epoch_size,combined_aggregate_genrated_samples
 from data_containers import load_data,load_all_data
 from metrics import calc_confusion_mat,calc_dice
@@ -30,16 +30,16 @@ from train_proccesses import TrainGenerator
 
 def train_combined(model,PersonTrainList,PersonValList,contrast_list,view_list,name,batch_size=256):#256
 
-    callbacks = create_callbacks(name, fold=0)
+    callbacks = create_callbacks_refrences(name, fold=0)
     logger.debug("creating train & val generators")
     train_images,positive_list, negative_list = load_all_data(PersonTrainList,contrast_list)
-    train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16,num_labels=4)
+    train_generator = TrainGenerator(train_images,positive_list, negative_list,contrast_list,view_list,batch_size,w=16,num_labels=1)
     val_images, pos_val_list, neg_val_list = load_all_data(PersonValList,contrast_list)
-    #val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
-    #val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=4)
+    val_generator = combined_generator(pos_val_list, neg_val_list, val_images,contrast_list,view_list)
+    val_set = combined_aggregate_genrated_samples(val_images,pos_val_list, neg_val_list,contrast_list,view_list,batch_size,w=16,aug_args=None,num_labels=1)
     logger.info("training combined model")
-    with open('./patches/val_set_{}'.format(test_person),'rb') as f:
-        val_set=pickle.load(f)
+    with open('./patches/val_set_attention{}'.format(test_person),'wb') as f:
+        pickle.dump(val_set,f)
 
     epoch_size = calc_epoch_size(positive_list, batch_size)
     val_size = calc_epoch_size(pos_val_list, batch_size)
@@ -92,15 +92,10 @@ for train_index, test_index in kf.split(data):
     name="test_{}".format(test_person)
     logger.info("training model {}".format(name))
     runs = []
-    predictor = n_experts_combined_model_gate_attention(N_mod=4,n=3)
+    predictor = one_expert_attention(N_mod=4)
     optimizer = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     predictor.compile(optimizer=optimizer,
-                  loss={'main_output': 'binary_crossentropy',
-                        'out0': 'binary_crossentropy',
-                        'out1': 'binary_crossentropy',
-                        'out2': 'binary_crossentropy',
-                        },
-                  loss_weights=[1., 0.2, 0.2, 0.2],
+                  loss={'main_output': 'binary_crossentropy'},
                   metrics=['accuracy', 'fmeasure'])
     history = train_combined(predictor, train_d, val_d, MR_modalities,view_list,
                              name=name)
